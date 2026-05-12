@@ -16,8 +16,6 @@
 Me = nil
 
 ---@class Aegis
----@field Debug AegisDebug
----@field Utils AegisUtils
 ---@field Errors table Error-cache module (LOS/facing pending state).
 ---@field include fun(rel_path: string): any Loads a Aegis module by relative path.
 ---@field _entity_cache table Last `game.objects` snapshot.
@@ -60,54 +58,15 @@ Targeting = Targeting or {}
 ---@type Pet
 Pet = Pet or {}
 
----@type Item
-Item = Item or {}
 
 ---@type Menu
 Menu = Menu or {}
-
----@type Interrupts
-Interrupts = Interrupts or {}
-
----@type Racials
-Racials = Racials or {}
-
----@type TotemKeybind
-TotemKeybind = TotemKeybind or {}
 
 ---@type BehaviorToggle
 BehaviorToggle = BehaviorToggle or {}
 
 ---@type RangeTarget
 RangeTarget = RangeTarget or {}
-
----@type Encounter
-Encounter = Encounter or {}
-
----@type FriendlyDispels
-FriendlyDispels = FriendlyDispels or {}
-
----@type OffensiveDispels
-OffensiveDispels = OffensiveDispels or {}
-
----@type CrowdControl
-CrowdControl = CrowdControl or {}
-
----@type AntiFear
-AntiFear = AntiFear or {}
-
----@type Defensive
-Defensive = Defensive or {}
-
--- BehaviorType enum is defined at runtime in system/behavior.lua. The
--- language server picks it up from there — duplicating the @enum here
--- would trip a "duplicate defined alias" warning.
-
--- ---------------------------------------------------------------------------
--- jmrTBC host API (console, imgui, cleu, wow, game, SCRIPTS_DIR, print) lives
--- in the shared `jmrtbc_api` library — see ../../jmrtbc_api/ and the
--- Lua.workspace.library entry in .vscode/settings.json.
--- ---------------------------------------------------------------------------
 
 ---@type fun(rel_path: string): any Aegis module loader; alias of Aegis.include.
 include = include or function(_) end
