@@ -16,9 +16,12 @@
 Me = nil
 
 ---@class Aegis
----@field Errors table Error-cache module (LOS/facing pending state).
 ---@field include fun(rel_path: string): any Loads a Aegis module by relative path.
 ---@field _entity_cache table Last `game.objects` snapshot.
+---@field _current_action string Human-readable "what is the bot doing right now" (UI dashboard).
+---@field _tick_load_ms number Last tick's Combat/Heal/Tank/Behavior update cost in ms.
+---@field _interrupt_log table Ring buffer of recent interrupt attempts (last 5).
+---@field _interrupt_log_idx number Monotonic write index for the ring buffer.
 Aegis = Aegis or {}
 
 ---@class AegisSettings

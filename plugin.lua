@@ -20,6 +20,10 @@ Aegis._last_fail_code            = 0
 Aegis._last_fail_desc            = ""
 Aegis._tick_throttled            = false
 Aegis._autorepeat_suppress_until = 0
+Aegis._current_action            = "IDLE"
+Aegis._tick_load_ms              = 0
+Aegis._interrupt_log             = {}
+Aegis._interrupt_log_idx         = 0
 
 
 local BASE_DIR = (SCRIPTS_DIR or game.SCRIPTS_DIR or ".") .. "\\Aegis"
@@ -274,11 +278,15 @@ function Plugin.onTick()
   end
 
 
+  Aegis._current_action = "IDLE"
+
+  local _t0 = os.clock()
   Combat:Update()
   Heal:Update()
   Tank:Update()
 
   Behavior:Update()
+  Aegis._tick_load_ms = (os.clock() - _t0) * 1000
 
   if now - save_cooldown > 5 then
     save_settings()
@@ -292,9 +300,6 @@ function Plugin.onDraw()
   Menu:Draw()
   if Spell and Spell.DrawDebugWindow then
     pcall(Spell.DrawDebugWindow, Spell)
-  end
-  if BehaviorToggle then
-    pcall(BehaviorToggle.DrawIndicator)
   end
 end
 

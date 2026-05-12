@@ -93,37 +93,12 @@ function BehaviorToggle.Tick()
   _last_state = pressed
 end
 
--- Renders the on-screen status badge near top center.
-function BehaviorToggle.DrawIndicator()
-  if not AegisSettings then return end
-  local key = AegisSettings.AegisToggleKey or 0
-  if key == 0 then return end
-  if not (imgui.get_display_size and imgui.draw_text and imgui.color_u32) then
-    return
-  end
-
-  local sx = imgui.get_display_size()
-  if not sx or sx == 0 then return end
-
-  local on = AegisSettings.AegisEnabled == true
-  local label
-  if on then
-    label = string.format("ROTATION: ON  [%s to pause]", key_label(key))
-  else
-    label = string.format("ROTATION: PAUSED  [%s to resume]", key_label(key))
-  end
-
-  local w          = #label * 8
-  local x          = sx * 0.5 - w * 0.5
-  local y          = 32
-
-  local col_shadow = imgui.color_u32(0, 0, 0, 1.0)
-  local col_text   = on
-      and imgui.color_u32(0.3, 1.0, 0.4, 1.0)
-      or imgui.color_u32(1.0, 0.4, 0.4, 1.0)
-
-  imgui.draw_text(x + 1, y + 1, col_shadow, label)
-  imgui.draw_text(x, y, col_text, label)
+-- Expose the bound key as a label string so the menu's top strip can
+-- display "F1 to toggle" without re-implementing the keycode lookup.
+function BehaviorToggle.GetKeyLabel()
+  local key = AegisSettings and AegisSettings.AegisToggleKey or 0
+  if key == 0 then return "unbound" end
+  return key_label(key)
 end
 
 -- Drop into the menu's General section via BehaviorToggle.DrawOptions().

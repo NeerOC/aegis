@@ -550,6 +550,7 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     Aegis._last_cast_tgt = tgt_name
     Aegis._last_cast_code = code
     Aegis._last_cast_desc = desc or ""
+    Aegis._current_action = "CAST: " .. self.Name .. " -> " .. (tgt_name or "self")
     self._fail_until = 0
     self._cast_until = now + CAST_THROTTLE
     local ct = self:CastTime()
@@ -783,6 +784,16 @@ function SpellWrapper:Interrupt(options)
   end
 
   if best_target then
+    Aegis._interrupt_log = Aegis._interrupt_log or {}
+    Aegis._interrupt_log_idx = (Aegis._interrupt_log_idx or 0) + 1
+    local slot = ((Aegis._interrupt_log_idx - 1) % 5) + 1
+    Aegis._interrupt_log[slot] = {
+      time = os.clock(),
+      spell = best_target.CastingSpellName or best_target.ChannelingSpellName or "?",
+      target = best_target.Name or "?",
+      interrupt = self.Name,
+    }
+    Aegis._current_action = "INTERRUPT: " .. self.Name .. " -> " .. (best_target.Name or "?")
     return self:CastEx(best_target)
   end
 
