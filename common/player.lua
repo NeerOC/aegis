@@ -33,7 +33,6 @@ function Player:IsAutoWanding()
   return game.IsAutoRepeatSpell(5019)
 end
 
----@return void
 function Player:StopCasting()
   game.stop_casting()
 end
@@ -48,9 +47,23 @@ function Player:SetTarget(target)
   return ok and result or false
 end
 
----@return void
 function Player:ClearTarget()
   pcall(game.clear_target)
+end
+
+---@return Unit|nil - Focus-frame unit, or nil if no focus set
+function Player:GetFocus()
+  local ok, t = pcall(game.focus)
+  if not ok or not t or not t.obj_ptr then
+    return nil
+  end
+  local entities = Aegis and Aegis._entity_cache or {}
+  for _, e in ipairs(entities) do
+    if e.obj_ptr == t.obj_ptr then
+      return Unit:New(e)
+    end
+  end
+  return Unit:New(t)
 end
 
 ---@param target Unit - The target to attack

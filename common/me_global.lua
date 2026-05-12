@@ -7,10 +7,13 @@
 ---@class Me : Player
 ---@field ClassName string Human-readable class name (e.g., "Warlock").
 ---@field Target Unit|nil Cached current target wrapper, refreshed each tick.
+---@field Focus Unit|nil Cached focus-frame target, refreshed each tick.
 ---@field _class_key string Internal lowercase class key used for behavior file lookup.
 ---@field _class_name string Same as ClassName; kept for backwards compatibility.
 ---@field _spec_options string[] Valid specialization names for the player's class.
-Me = {}
+
+---@type Me?
+Me = nil
 
 ---@class Aegis
 ---@field Cache AegisCache
@@ -105,34 +108,10 @@ AntiFear = AntiFear or {}
 ---@type Defensive
 Defensive = Defensive or {}
 
----@enum BehaviorType
-BehaviorType = {
-  Heal   = 1,
-  Tank   = 2,
-  Combat = 3,
-  Rest   = 4,
-  Extra  = 5,
-}
-
----@enum GroupRole
-GroupRole = {
-  None   = 0x0,
-  Tank   = 0x2,
-  Healer = 0x4,
-  Damage = 0x8,
-}
-
----@enum UnitReaction
-UnitReaction = {
-  Hated      = 1,
-  Hostile    = 2,
-  Unfriendly = 3,
-  Neutral    = 4,
-  Friendly   = 5,
-  Honored    = 6,
-  Revered    = 7,
-  Exalted    = 8,
-}
+-- Enums (BehaviorType, GroupRole, UnitReaction) are defined at runtime in
+-- system/behavior.lua and common/group.lua. The language server picks them
+-- up from there — duplicating the @enum here would trip a "duplicate
+-- defined alias" warning.
 
 -- ---------------------------------------------------------------------------
 -- jmrTBC host API (console, imgui, cleu, wow, game, SCRIPTS_DIR, print) lives
@@ -142,3 +121,6 @@ UnitReaction = {
 
 ---@type fun(rel_path: string): any Aegis module loader; alias of Aegis.include.
 include = include or function(_) end
+
+---@type string Scripts root dir, set by jmrTBC's init.lua at boot.
+SCRIPTS_DIR = SCRIPTS_DIR or ""

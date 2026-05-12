@@ -13,6 +13,73 @@
 --      a TODO so we know what to fill in.
 -- ═══════════════════════════════════════════════════════════════════
 
+-- ── LuaLS: declare every field this shim adds to the `game` class ──
+-- The host stubs in jmrtbc_api/game.lua only declare the native
+-- (game.traceline, game.los, …); without this block every `function
+-- game.foo()` below trips "Fields cannot be injected" under strict mode.
+
+---@class game
+---@field objects               fun(): table[]
+---@field local_player          fun(): table|nil
+---@field target                fun(): table|nil
+---@field focus                 fun(): table|nil
+---@field unit_target           fun(obj_ptr: number): table|nil
+---@field set_target            fun(target: number|string|table): boolean
+---@field clear_target          fun()
+---@field with_mouseover        fun(u: any, fn: fun(token: string): any): any
+---@field cast_spell_at_unit    fun(id: number, obj_ptr: any, opts?: table): number, string
+---@field cast_at_pos           fun(id: number, x: number, y: number, z: number): number, string
+---@field stop_casting          fun()
+---@field IsCurrentSpell        fun(id: number): boolean
+---@field IsAutoRepeatSpell     fun(id: number): boolean
+---@field is_spell_known        fun(id: number): boolean
+---@field spell_cooldown        fun(id: number): { on_cooldown: boolean, enabled: boolean, start: number, duration: number }
+---@field is_usable_spell       fun(id: number): boolean, boolean
+---@field is_spell_in_range     fun(id: number, obj_ptr: number): number|nil
+---@field get_spell_info        fun(id: number): { max_range: number, min_range: number, cast_time: number }
+---@field get_spell_name        fun(id: number): string
+---@field spell_dispel_type     fun(id: number): number
+---@field spell_school_mask     fun(id: number): number
+---@field spell_is_stealable    fun(id: number): boolean
+---@field item_use_spell        fun(obj_ptr: number): number
+---@field item_use_spell_by_entry fun(entry_id: number): number
+---@field use_item              fun(obj_ptr: number): boolean
+---@field find_item_by_entry    fun(entry_id: number): number
+---@field use_item_by_entry     fun(entry_id: number): boolean
+---@field find_spell_id         fun(name: string): number|nil
+---@field known_spells          fun(want_names?: boolean): table
+---@field pet_spells            fun(want_names?: boolean): table
+---@field unit_casting_info     fun(tok: any): table|nil
+---@field unit_channel_info     fun(tok: any): table|nil
+---@field unit_dead_or_ghost    fun(obj_ptr: number): boolean
+---@field unit_can_attack       fun(a: any, b?: any): boolean
+---@field unit_is_attackable    fun(obj_ptr: any): boolean
+---@field unit_is_enemy         fun(a: any, b?: any): boolean
+---@field unit_is_friend        fun(a: any, b?: any): boolean
+---@field unit_reaction         fun(a: number, b: number): number
+---@field unit_role             fun(obj_ptr: number): string
+---@field unit_is_tank          fun(obj_ptr: number): boolean
+---@field unit_is_healer        fun(obj_ptr: number): boolean
+---@field unit_is_dps           fun(obj_ptr: number): boolean
+---@field unit_threat           fun(obj_ptr: number): boolean, number, number, number, number
+---@field entity_position       fun(obj_ptr: number): { x: number, y: number, z: number }|nil
+---@field entity_bounds         fun(obj_ptr: number): { width: number, height: number }|nil
+---@field is_visible            fun(a: number, b: number, flags?: number): boolean
+---@field has_aura              fun(obj_ptr: number, name_or_id: string|number): boolean
+---@field aura_info             fun(obj_ptr: number, name_or_id: string|number): table|nil
+---@field is_in_group           fun(): boolean
+---@field is_in_raid            fun(): boolean
+---@field group_members         fun(): table
+---@field attack_speed          fun(obj_ptr: number): { mh: number, oh: number, ranged: number }|nil
+---@field swing_info            fun(guid_hex: string, hand?: string): table|nil
+---@field world_to_screen       fun(x: number, y: number, z: number): number|nil, number|nil
+---@field set_facing            fun(a: number|table, b?: number, c?: number): boolean
+---@field entity_facing         fun(wrapper: number): number|nil
+---@field move_to               fun(x: number, y: number, z: number): boolean
+---@field move_direction        fun(angle: number, distance: number): boolean
+---@field is_moving             fun(): boolean
+---@field stop_moving           fun(): boolean
+
 -- Note: no load guard here. Aegis's dev loop relies on END-key reloads
 -- re-running onEnable (and hence this shim) to pick up edits. All setup
 -- below is idempotent (function re-definitions, table rebinds), so
@@ -42,10 +109,10 @@ game.SCRIPTS_DIR = game.SCRIPTS_DIR or SCRIPTS_DIR or "."
 local function aegis_class(e)
   local t = e.type or ""
   if t == "activeplayer" then return "ActivePlayer" end
-  if t == "player"       then return "Player" end
-  if t == "gameobject"   then return "GameObject" end
-  if t == "item"         then return "Item" end
-  if t == "container"    then return "Container" end
+  if t == "player" then return "Player" end
+  if t == "gameobject" then return "GameObject" end
+  if t == "item" then return "Item" end
+  if t == "container" then return "Container" end
   return "Unit"
 end
 
@@ -62,15 +129,15 @@ local CLASSIFICATION_NAMES = {
 -- Class IDs: Warrior=1, Paladin=2, Hunter=3, Rogue=4, Priest=5, Shaman=7,
 -- Mage=8, Warlock=9, Druid=11.
 local TBC_SPEC_MAP = {
-  [1]  = { [0] = "Arms",         [1] = "Fury",         [2] = "Protection" }, -- Warrior
-  [2]  = { [0] = "Holy",         [1] = "Protection",   [2] = "Retribution" }, -- Paladin
-  [3]  = { [0] = "Beast Mastery",[1] = "Marksmanship", [2] = "Survival" },    -- Hunter
-  [4]  = { [0] = "Assassination",[1] = "Combat",       [2] = "Subtlety" },    -- Rogue
-  [5]  = { [0] = "Discipline",   [1] = "Holy",         [2] = "Shadow" },      -- Priest
-  [7]  = { [0] = "Elemental",    [1] = "Enhancement",  [2] = "Restoration" }, -- Shaman
-  [8]  = { [0] = "Arcane",       [1] = "Fire",         [2] = "Frost" },       -- Mage
-  [9]  = { [0] = "Affliction",   [1] = "Demonology",   [2] = "Destruction" }, -- Warlock
-  [11] = { [0] = "Balance",      [1] = "Feral Combat", [2] = "Restoration" }, -- Druid
+  [1]  = { [0] = "Arms", [1] = "Fury", [2] = "Protection" },                  -- Warrior
+  [2]  = { [0] = "Holy", [1] = "Protection", [2] = "Retribution" },           -- Paladin
+  [3]  = { [0] = "Beast Mastery", [1] = "Marksmanship", [2] = "Survival" },   -- Hunter
+  [4]  = { [0] = "Assassination", [1] = "Combat", [2] = "Subtlety" },         -- Rogue
+  [5]  = { [0] = "Discipline", [1] = "Holy", [2] = "Shadow" },                -- Priest
+  [7]  = { [0] = "Elemental", [1] = "Enhancement", [2] = "Restoration" },     -- Shaman
+  [8]  = { [0] = "Arcane", [1] = "Fire", [2] = "Frost" },                     -- Mage
+  [9]  = { [0] = "Affliction", [1] = "Demonology", [2] = "Destruction" },     -- Warlock
+  [11] = { [0] = "Balance", [1] = "Feral Combat", [2] = "Restoration" },      -- Druid
 }
 
 -- Local-player-only spec derivation. We can only walk the talent list for
@@ -135,33 +202,33 @@ local function wrap_entity(e)
   -- Items/containers/GOs: slim wrapper, no nested unit table.
   if not is_unit_like then
     return {
-      obj_ptr        = e.wrapper,
-      cgunit         = e.instance,
-      guid           = e.guid or "",
-      guid_lo        = e.guid_lo or 0,
-      guid_hi        = e.guid_hi or 0,
-      name           = e.name or "",
-      position       = position,
-      facing         = e.facing or 0,
-      entry_id       = e.entry_id or 0,
-      class          = aegis_class(e),
-      dynamic_flags  = e.dynamic_flags or e.obj_dynamic_flags or 0,
-      is_lootable    = ((e.obj_dynamic_flags or 0) % 2) == 1,
-      wrapper        = e.wrapper,
-      instance       = e.instance,
-      real           = e.real,
-      type           = e.type,
-      type_id        = e.type_id,
+      obj_ptr          = e.wrapper,
+      cgunit           = e.instance,
+      guid             = e.guid or "",
+      guid_lo          = e.guid_lo or 0,
+      guid_hi          = e.guid_hi or 0,
+      name             = e.name or "",
+      position         = position,
+      facing           = e.facing or 0,
+      entry_id         = e.entry_id or 0,
+      class            = aegis_class(e),
+      dynamic_flags    = e.dynamic_flags or e.obj_dynamic_flags or 0,
+      is_lootable      = ((e.obj_dynamic_flags or 0) % 2) == 1,
+      wrapper          = e.wrapper,
+      instance         = e.instance,
+      real             = e.real,
+      type             = e.type,
+      type_id          = e.type_id,
       created_by_guid  = e.created_by_guid or "",
       summoned_by_guid = e.summoned_by_guid or "",
-      unit           = nil,
+      unit             = nil,
     }
   end
 
   local cast_spell_id = e.cast_spell_id or 0
-  local casting      = false
-  local channeling   = false
-  local cast_name    = ""
+  local casting       = false
+  local channeling    = false
+  local cast_name     = ""
   if cast_spell_id > 0 then
     -- cast_state byte 1=casting, 2=channeling (verified from sub_2299CA0)
     if e.cast_state == 2 then channeling = true else casting = true end
@@ -171,82 +238,82 @@ local function wrap_entity(e)
   local classification_id = e.classification or 0
   local classification_nm = CLASSIFICATION_NAMES[classification_id] or "normal"
 
-  local unit_flags = e.unit_flags or 0
-  local in_combat  = (unit_flags % 0x100000) >= 0x80000 -- bit 0x80000
-  local is_mounted = (e.mount_display_id or 0) ~= 0
-                     and not ((e.client_state_flags or 0) >= 0x200000
-                              and ((e.client_state_flags or 0) % 0x400000) >= 0x200000)
+  local unit_flags        = e.unit_flags or 0
+  local in_combat         = (unit_flags % 0x100000) >= 0x80000 -- bit 0x80000
+  local is_mounted        = (e.mount_display_id or 0) ~= 0
+      and not ((e.client_state_flags or 0) >= 0x200000
+        and ((e.client_state_flags or 0) % 0x400000) >= 0x200000)
 
-  local is_player = e.type == "player" or e.type == "activeplayer"
+  local is_player         = e.type == "player" or e.type == "activeplayer"
 
   return {
     -- Top-level fields Aegis reads
-    obj_ptr        = e.wrapper,
-    cgunit         = e.instance,
-    guid           = e.guid or "",
-    guid_lo        = e.guid_lo or 0,
-    guid_hi        = e.guid_hi or 0,
-    name           = e.name or "",
-    position       = position,
-    facing         = e.facing or 0,
-    entry_id       = e.entry_id or 0,
-    class          = aegis_class(e),
-    dynamic_flags  = e.dynamic_flags or e.obj_dynamic_flags or 0,
-    is_lootable    = ((e.obj_dynamic_flags or 0) % 2) == 1, -- bit 0 = lootable
+    obj_ptr          = e.wrapper,
+    cgunit           = e.instance,
+    guid             = e.guid or "",
+    guid_lo          = e.guid_lo or 0,
+    guid_hi          = e.guid_hi or 0,
+    name             = e.name or "",
+    position         = position,
+    facing           = e.facing or 0,
+    entry_id         = e.entry_id or 0,
+    class            = aegis_class(e),
+    dynamic_flags    = e.dynamic_flags or e.obj_dynamic_flags or 0,
+    is_lootable      = ((e.obj_dynamic_flags or 0) % 2) == 1, -- bit 0 = lootable
 
     -- Raw TBC fields passed through for power users
-    wrapper        = e.wrapper,
-    instance       = e.instance,
-    real           = e.real,
-    type           = e.type,
-    type_id        = e.type_id,
+    wrapper          = e.wrapper,
+    instance         = e.instance,
+    real             = e.real,
+    type             = e.type,
+    type_id          = e.type_id,
     created_by_guid  = e.created_by_guid or "",
     summoned_by_guid = e.summoned_by_guid or "",
 
     -- Nested unit table Aegis consumes. `speed` is omitted from the
     -- literal and resolved lazily by the metatable below — see
     -- eval_unit_speed for the mouseover-bridge plumbing.
-    unit = setmetatable({
-      name                   = e.name or "",
-      health                 = e.health or 0,
-      max_health             = e.max_health or 1,
-      level                  = e.level or 0,
-      unit_flags             = unit_flags,
-      unit_flags2            = e.unit_flags2 or 0,
-      unit_flags3            = 0, -- MoP-only, stub
-      power                  = e.power or 0,
-      max_power              = (e.max_power and e.max_power > 0) and e.max_power or 1,
-      power_type             = e.power_type or 0,
-      class_id               = e.class or 0, -- numeric class (warrior=1, paladin=2, ...)
-      race                   = e.race or 0,
-      is_dead                = e.is_dead or false,
-      is_player              = is_player,
-      in_combat              = in_combat,
-      is_mounted             = is_mounted,
-      mount_display_id       = e.mount_display_id or 0,
-      classification         = classification_id,
-      classification_name    = classification_nm,
-      is_casting             = casting,
-      is_channeling          = channeling,
-      casting_spell_id       = casting and cast_spell_id or 0,
-      casting_spell_name     = casting and cast_name or "",
-      channeling_spell_id    = channeling and cast_spell_id or 0,
-      channeling_spell_name  = channeling and cast_name or "",
-      cast_start_ms          = e.cast_start_ms or 0,
-      cast_duration_ms       = e.cast_duration_ms or 0,
-      cast_end_ms            = e.cast_end_ms or 0,
-      auras                  = e.auras or {},
-      bounding_radius        = e.bounding_radius or 0,
-      combat_reach           = e.combat_reach or 0,
-      attack_time_mh         = e.attack_time_mh or 0,
-      attack_time_oh         = e.attack_time_oh or 0,
-      attack_time_ranged     = e.attack_time_ranged or 0,
-      powers                 = e.powers or {},
-      max_powers             = e.max_powers or {},
-      spec_id                = local_spec_id(e),   -- 1-based tab index (talent-derived on local player, else 0)
-      spec_name              = local_spec_name(e), -- talent-derived spec name ("Retribution", ...) or "" on other players
-      dynamic_flags          = e.dynamic_flags or 0,
-      is_lootable            = ((e.obj_dynamic_flags or 0) % 2) == 1,
+    unit             = setmetatable({
+      name                  = e.name or "",
+      health                = e.health or 0,
+      max_health            = e.max_health or 1,
+      level                 = e.level or 0,
+      unit_flags            = unit_flags,
+      unit_flags2           = e.unit_flags2 or 0,
+      unit_flags3           = 0,  -- MoP-only, stub
+      power                 = e.power or 0,
+      max_power             = (e.max_power and e.max_power > 0) and e.max_power or 1,
+      power_type            = e.power_type or 0,
+      class_id              = e.class or 0,  -- numeric class (warrior=1, paladin=2, ...)
+      race                  = e.race or 0,
+      is_dead               = e.is_dead or false,
+      is_player             = is_player,
+      in_combat             = in_combat,
+      is_mounted            = is_mounted,
+      mount_display_id      = e.mount_display_id or 0,
+      classification        = classification_id,
+      classification_name   = classification_nm,
+      is_casting            = casting,
+      is_channeling         = channeling,
+      casting_spell_id      = casting and cast_spell_id or 0,
+      casting_spell_name    = casting and cast_name or "",
+      channeling_spell_id   = channeling and cast_spell_id or 0,
+      channeling_spell_name = channeling and cast_name or "",
+      cast_start_ms         = e.cast_start_ms or 0,
+      cast_duration_ms      = e.cast_duration_ms or 0,
+      cast_end_ms           = e.cast_end_ms or 0,
+      auras                 = e.auras or {},
+      bounding_radius       = e.bounding_radius or 0,
+      combat_reach          = e.combat_reach or 0,
+      attack_time_mh        = e.attack_time_mh or 0,
+      attack_time_oh        = e.attack_time_oh or 0,
+      attack_time_ranged    = e.attack_time_ranged or 0,
+      powers                = e.powers or {},
+      max_powers            = e.max_powers or {},
+      spec_id               = local_spec_id(e),    -- 1-based tab index (talent-derived on local player, else 0)
+      spec_name             = local_spec_name(e),  -- talent-derived spec name ("Retribution", ...) or "" on other players
+      dynamic_flags         = e.dynamic_flags or 0,
+      is_lootable           = ((e.obj_dynamic_flags or 0) % 2) == 1,
     }, {
       __index = function(t, k)
         if k == "speed" then
@@ -273,7 +340,7 @@ end
 
 local _raw_cache = nil
 local _raw_cache_time = -1.0
-local _RAW_CACHE_TTL = 0.030  -- seconds
+local _RAW_CACHE_TTL = 0.030 -- seconds
 
 local function raw_entities()
   local now = os.clock()
@@ -323,6 +390,11 @@ end
 
 function game.target()
   local hex = wow.target_guid and wow.target_guid()
+  return find_by_guid_hex(hex)
+end
+
+function game.focus()
+  local hex = wow.focus_guid and wow.focus_guid()
   return find_by_guid_hex(hex)
 end
 
@@ -454,8 +526,8 @@ end
 
 -- Aegis codes (from common/spell.lua comments): 0=ok, 9=throttled,
 -- 10=not ready, 11=on cd, 12=queued. We return 0 "ok" on success.
-local CAST_OK   = { 0, "ok" }
-local CAST_FAIL = { 1, "failed" }
+local CAST_OK            = { 0, "ok" }
+local CAST_FAIL          = { 1, "failed" }
 
 -- Async-queue spam guard: wow.cast_spell{_at_target} always returns true
 -- because the bridge just enqueues a request — the actual game-side result
@@ -466,7 +538,7 @@ local CAST_FAIL = { 1, "failed" }
 -- tick-throttling Aegis without triggering FAIL_BACKOFF. The main cast
 -- pre-check (game.spell_cooldown) catches legitimate CDs before this kicks
 -- in; the guard only limits damage when the cooldown leaf mis-reports.
-local _last_queue_at = {}
+local _last_queue_at     = {}
 local POST_QUEUE_GUARD_S = 1.5
 
 -- Resolve obj_ptr into (guid_hex, guid_lo, guid_hi, is_self). obj_ptr is
@@ -477,7 +549,7 @@ local function resolve_obj_guid(obj_ptr)
   if type(obj_ptr) == "table" then
     local inner = obj_ptr.obj_ptr or obj_ptr
     if inner == me_wrap then return nil, 0, 0, true end
-    local g  = obj_ptr.guid    or (obj_ptr.unit and obj_ptr.unit.guid)    or ""
+    local g  = obj_ptr.guid or (obj_ptr.unit and obj_ptr.unit.guid) or ""
     local lo = obj_ptr.guid_lo or (obj_ptr.unit and obj_ptr.unit.guid_lo) or 0
     local hi = obj_ptr.guid_hi or (obj_ptr.unit and obj_ptr.unit.guid_hi) or 0
     if lo == 0 and hi == 0 then lo, hi = split_guid_hex(g) end
@@ -502,6 +574,7 @@ function game.cast_spell_at_unit(id, obj_ptr, opts)
   -- opts.ground is unused — ground-targeted casts go through CastAtPos.
   if not id or id == 0 then return CAST_FAIL[1], CAST_FAIL[2] end
 
+  local now = os.clock()
   local tgt_guid, tgt_lo, tgt_hi, is_self = resolve_obj_guid(obj_ptr)
 
   -- Self-cast: call cast_spell (no target lookup inside the bridge).
@@ -574,12 +647,16 @@ end
 
 -- ── Spell metadata / state (stubs until RE'd) ──────────────────────
 
+---@param id number
+---@return boolean
 function game.IsCurrentSpell(id)
-  return wow.eval_lua("C_Spell.IsCurrentSpell(" .. id .. ")")
+  return wow.eval_lua("C_Spell.IsCurrentSpell(" .. id .. ")") == true
 end
 
+---@param id number
+---@return boolean
 function game.IsAutoRepeatSpell(id)
-  return wow.eval_lua("C_Spell.IsAutoRepeatSpell(" .. id .. ")")
+  return wow.eval_lua("C_Spell.IsAutoRepeatSpell(" .. id .. ")") == true
 end
 
 function game.is_spell_known(id)
@@ -631,7 +708,7 @@ function game.is_spell_in_range(id, obj_ptr)
   local tx, ty, tz = wow.entity_position(obj_ptr)
   if not px or not tx then return nil end
   local dx, dy, dz = tx - px, ty - py, tz - pz
-  local dist = math.sqrt(dx*dx + dy*dy + dz*dz)
+  local dist = math.sqrt(dx * dx + dy * dy + dz * dz)
   return dist <= max_r and 1 or 0
 end
 
@@ -827,7 +904,9 @@ end
 
 function game.unit_can_attack(a, b)
   if not wow.unit_can_attack then return false end
-  if not b then b = a; a = local_player_ptr() end
+  if not b then
+    b = a; a = local_player_ptr()
+  end
   if not a or a == 0 or not b or b == 0 then return false end
   return wow.unit_can_attack(a, b)
 end
@@ -838,20 +917,24 @@ end
 
 function game.unit_is_enemy(a, b)
   if not wow.unit_is_enemy then return false end
-  if not b then b = a; a = local_player_ptr() end
+  if not b then
+    b = a; a = local_player_ptr()
+  end
   if not a or a == 0 or not b or b == 0 then return false end
   return wow.unit_is_enemy(a, b)
 end
 
 function game.unit_is_friend(a, b)
   if not wow.unit_is_friend then return false end
-  if not b then b = a; a = local_player_ptr() end
+  if not b then
+    b = a; a = local_player_ptr()
+  end
   if not a or a == 0 or not b or b == 0 then return false end
   return wow.unit_is_friend(a, b)
 end
 
 function game.unit_reaction(a, b)
-  if wow.unit_reaction then return wow.unit_reaction(a, b) end
+  if wow.unit_reaction then return wow.unit_reaction(a, b) or 0 end
   return 0
 end
 
@@ -881,15 +964,15 @@ end
 -- Class IDs: Warrior=1, Paladin=2, Hunter=3, Rogue=4, Priest=5, Shaman=7,
 -- Mage=8, Warlock=9, Druid=11.
 local TBC_TANK_SPECS = {
-  [1]  = { [2] = true },              -- Warrior / Protection
-  [2]  = { [1] = true },              -- Paladin / Protection
-  [11] = { [1] = true },              -- Druid   / Feral (bear)
+  [1]  = { [2] = true }, -- Warrior / Protection
+  [2]  = { [1] = true }, -- Paladin / Protection
+  [11] = { [1] = true }, -- Druid   / Feral (bear)
 }
 local TBC_HEALER_SPECS = {
-  [2]  = { [0] = true },              -- Paladin / Holy
-  [5]  = { [0] = true, [1] = true },  -- Priest  / Discipline, Holy
-  [7]  = { [2] = true },              -- Shaman  / Restoration
-  [11] = { [2] = true },              -- Druid   / Restoration
+  [2]  = { [0] = true },             -- Paladin / Holy
+  [5]  = { [0] = true, [1] = true }, -- Priest  / Discipline, Holy
+  [7]  = { [2] = true },             -- Shaman  / Restoration
+  [11] = { [2] = true },             -- Druid   / Restoration
 }
 
 local TBC_PURE_DPS = { [3] = true, [4] = true, [8] = true, [9] = true }
@@ -904,23 +987,24 @@ local TBC_TANK_AURAS = {
   ["Righteous Fury"]   = true,
 }
 local TBC_DPS_AURAS = {
-  ["Cat Form"]      = true,
-  ["Moonkin Form"]  = true,
-  ["Shadowform"]    = true,
+  ["Cat Form"]     = true,
+  ["Moonkin Form"] = true,
+  ["Shadowform"]   = true,
 }
 local TBC_HEALER_AURAS = {
-  ["Tree of Life"]  = true,
+  ["Tree of Life"] = true,
 }
 
+---@return string|nil
 local function aura_role_hint(e)
   local au = e and e.unit and e.unit.auras
   if not au then return nil end
   for i = 1, #au do
     local name = au[i] and au[i].name
     if name then
-      if TBC_TANK_AURAS[name]   then return "TANK"    end
-      if TBC_HEALER_AURAS[name] then return "HEALER"  end
-      if TBC_DPS_AURAS[name]    then return "DAMAGER" end
+      if TBC_TANK_AURAS[name] then return "TANK" end
+      if TBC_HEALER_AURAS[name] then return "HEALER" end
+      if TBC_DPS_AURAS[name] then return "DAMAGER" end
     end
   end
   return nil
@@ -932,8 +1016,8 @@ end
 -- in a global table the shim reads back via wow.read_lua_path.
 
 local _inspect_bootstrapped = false
-local _last_inspect_at      = {}   -- player_name → os.clock when NotifyInspect was last fired
-local INSPECT_COOLDOWN_S    = 6.0  -- TBC server-side throttle is ~5s; pad a bit
+local _last_inspect_at      = {}  -- player_name → os.clock when NotifyInspect was last fired
+local INSPECT_COOLDOWN_S    = 6.0 -- TBC server-side throttle is ~5s; pad a bit
 
 local function bootstrap_inspect_listener()
   if _inspect_bootstrapped or not wow or not wow.run_lua then return end
@@ -1048,9 +1132,11 @@ end
 -- helper JmrTBC_GetRole(name) checks UnitGroupRolesAssigned first, then
 -- the inspect cache. Lua-side TTL keeps a tick that asks 5 members
 -- to one round-trip per name per half-second.
-local _role_lookup_cache = {}     -- name → {role, at}
+local _role_lookup_cache = {} -- name → {role, at}
 local ROLE_LOOKUP_TTL = 0.5
 
+---@param name string
+---@return string|nil
 local function inspect_role_for(name)
   if not name or name == "" then return nil end
   local now = os.clock()
@@ -1060,9 +1146,9 @@ local function inspect_role_for(name)
   local stash = "__jmrtbc_role_lookup_" .. name:gsub("[^%w]", "_")
   pcall(wow.run_lua,
     string.format("_G[%q] = (JmrTBC_GetRole and JmrTBC_GetRole(%q)) or \"\"",
-                  stash, name))
+      stash, name))
   local v = wow.read_lua_path(stash)
-  local role = (v and v ~= "" and v ~= "NONE") and v or nil
+  local role = (type(v) == "string" and v ~= "" and v ~= "NONE") and v or nil
   _role_lookup_cache[name] = { role = role, at = now }
   return role
 end
@@ -1084,7 +1170,7 @@ local function role_for(obj_ptr)
   if e.type == "activeplayer" and wow.dominant_spec then
     local tab = wow.dominant_spec()
     if tab and tab >= 0 then
-      if TBC_TANK_SPECS[class_id]   and TBC_TANK_SPECS[class_id][tab]   then return "TANK" end
+      if TBC_TANK_SPECS[class_id] and TBC_TANK_SPECS[class_id][tab] then return "TANK" end
       if TBC_HEALER_SPECS[class_id] and TBC_HEALER_SPECS[class_id][tab] then return "HEALER" end
     end
     return "DAMAGER"
@@ -1112,10 +1198,13 @@ local function role_for(obj_ptr)
   return "DAMAGER"
 end
 
-function game.unit_role(obj_ptr)      return role_for(obj_ptr) end
-function game.unit_is_tank(obj_ptr)   return role_for(obj_ptr) == "TANK"   end
+function game.unit_role(obj_ptr) return role_for(obj_ptr) end
+
+function game.unit_is_tank(obj_ptr) return role_for(obj_ptr) == "TANK" end
+
 function game.unit_is_healer(obj_ptr) return role_for(obj_ptr) == "HEALER" end
-function game.unit_is_dps(obj_ptr)    return role_for(obj_ptr) == "DAMAGER" end
+
+function game.unit_is_dps(obj_ptr) return role_for(obj_ptr) == "DAMAGER" end
 
 function game.unit_threat(obj_ptr)
   -- Aegis wants 5 returns. Adapter: (is_tanking, status, scaled, raw, value).
@@ -1194,13 +1283,13 @@ function game.aura_info(obj_ptr, name_or_id)
   for _, a in ipairs(e.unit.auras) do
     if (is_id and a.spell_id == name_or_id) or (not is_id and a.name == name_or_id) then
       return {
-        spell_id         = a.spell_id,
-        name             = a.name,
-        stacks           = a.stacks,
-        duration_ms      = a.duration_ms,
-        expire_ms        = a.expire_ms,
-        caster_guid      = a.caster_guid,
-        is_from_player   = (a.caster_guid == me_guid),
+        spell_id       = a.spell_id,
+        name           = a.name,
+        stacks         = a.stacks,
+        duration_ms    = a.duration_ms,
+        expire_ms      = a.expire_ms,
+        caster_guid    = a.caster_guid,
+        is_from_player = (a.caster_guid == me_guid),
       }
     end
   end
@@ -1232,6 +1321,7 @@ function game.attack_speed(obj_ptr)
   local e = find_by_wrapper(obj_ptr)
   if not e then return nil end
   local u = e.unit
+  if not u then return nil end
   return {
     mh     = u.attack_time_mh or 0,
     oh     = u.attack_time_oh or 0,

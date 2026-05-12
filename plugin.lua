@@ -194,6 +194,7 @@ local function refresh_me()
   end
 
   Me.Target = Me:GetTarget()
+  Me.Focus  = Me:GetFocus()
 end
 
 

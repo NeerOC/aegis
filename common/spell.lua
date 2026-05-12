@@ -208,11 +208,15 @@ function SpellWrapper:DotTotal()
   local duration = tonumber(wow.read_lua_path("__aegis_dot_duration")) or 0
   local req_lvl  = tonumber(wow.read_lua_path("__aegis_dot_req_lvl")) or 0
 
+  ---@type number
   local sp = 0
   local school_idx = SCHOOL_INDEX[school]
   if school_idx and wow.eval_lua then
     local ok, v = pcall(wow.eval_lua, "GetSpellBonusDamage(" .. school_idx .. ")")
-    if ok and tonumber(v) then sp = tonumber(v) end
+    if ok then
+      local n = tonumber(v)
+      if n then sp = n end
+    end
   end
 
   local player_lvl = (Me and Me.Level) or 0
@@ -595,12 +599,17 @@ function SpellWrapper:CastAtPos(x_or_entity, y, z)
   end
 end
 
---- @param options Optional table: {playersOnly=false, customRange=nil, losCheck=true}
+---@class InterruptOptions
+---@field playersOnly? boolean  Only consider Player-type targets. Defaults to false.
+---@field customRange? number   Override max range (yards). Defaults to the spell's max_range.
+---@field losCheck?    boolean  Skip line-of-sight check when false. Defaults to true.
+
+---@param options? InterruptOptions
 function SpellWrapper:Interrupt(options)
   options = options or {}
   local players_only = options.playersOnly or false
   local custom_range = options.customRange
-  local los_check = options.losCheck ~= false
+  local los_check    = options.losCheck ~= false
 
   local mode = AegisSettings.AegisInterruptMode or 0
   if mode == 2 then
