@@ -296,27 +296,33 @@ end
 
 function Plugin.onDraw()
   if not initialized then return end
+
+  -- Top-center "PAUSED" banner — drawn before the Me guard so it survives
+  -- even when the player object isn't resolved yet (loading, etc.). The
+  -- master gate is AegisSettings.AegisEnabled, toggled by BehaviorToggle's
+  -- keybind (configure in the Rotation tab).
+  if AegisSettings and not AegisSettings.AegisEnabled
+      and imgui.draw_text and imgui.get_display_size then
+    local sw, _sh = imgui.get_display_size()
+    local label   = "PAUSED"
+    -- Default ImGui font ~7px per glyph; pad a bit so the backing rect
+    -- doesn't crowd the letters.
+    local text_w  = #label * 8
+    local text_h  = 16
+    local px      = math.floor((sw - text_w) * 0.5)
+    local py      = 24
+    local red     = imgui.color_u32(1.0, 0.20, 0.20, 1.0)
+    local bg      = imgui.color_u32(0.0, 0.0, 0.0, 0.70)
+    local border  = imgui.color_u32(1.0, 0.20, 0.20, 0.85)
+    imgui.draw_rect_filled(px - 14, py - 8, px + text_w + 14, py + text_h + 8, bg, 4)
+    imgui.draw_rect(px - 14, py - 8, px + text_w + 14, py + text_h + 8, border, 4, 2)
+    imgui.draw_text(px, py, red, label)
+  end
+
   if not Me then return end
   Menu:Draw()
   if Spell and Spell.DrawDebugWindow then
     pcall(Spell.DrawDebugWindow, Spell)
-  end
-
-  -- World-space "Rotation: DISABLED" label above the player when the
-  -- master rotation toggle is off. Pure yellow so it's visible against
-  -- any backdrop without competing with the cyan menu accent.
-  -- NB: Plugin.onTick early-returns before refresh_me() when the rotation
-  -- is disabled, so Me.Position would be frozen at the toggle-off moment.
-  -- Read the LIVE player position via the wow.* surface instead.
-  if not AegisSettings.AegisEnabled and imgui.draw_world_text and wow and wow.active_player and wow.entity_position then
-    local player = wow.active_player()
-    if player and player ~= 0 then
-      local px, py, pz = wow.entity_position(player)
-      if px and py and pz then
-        local yellow = imgui.color_u32(1.0, 1.0, 0.0, 1.0)
-        imgui.draw_world_text(px, py, pz + 3.0, yellow, "Rotation: DISABLED")
-      end
-    end
   end
 end
 
