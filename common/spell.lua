@@ -502,41 +502,8 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     target_is_friend = not Me:CanAttack(target)
   end
 
-  if not point_blank and not skiplos
-      and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
-    if Aegis.Errors and Aegis.Errors:IsLOSBlocked(target) then
-      if debugging then
-        spell_debug_log({
-          time = now,
-          spell = self.Name,
-          id = self.Id,
-          target = tgt_name,
-          target_hp = tgt_hp,
-          target_dist = dist,
-          result = "SKIP",
-          reason = "no_los_cached"
-        })
-      end
-      return false
-    end
-  end
   if not point_blank and not skipfacing and not target_is_friend and not self:IsHelpful()
       and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
-    if Aegis.Errors and Aegis.Errors:IsFrontBlocked(target) then
-      if debugging then
-        spell_debug_log({
-          time = now,
-          spell = self.Name,
-          id = self.Id,
-          target = tgt_name,
-          target_hp = tgt_hp,
-          target_dist = dist,
-          result = "SKIP",
-          reason = "not_facing_cached"
-        })
-      end
-      return false
-    end
     local fok, facing = pcall(game.is_facing, Me.obj_ptr, target.obj_ptr)
     if fok and not facing then
       if debugging then
@@ -557,10 +524,6 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
 
   if stop_conflicting_autorepeat(self.Id) then
     return false
-  end
-
-  if Aegis.Errors and target and target ~= Me then
-    Aegis.Errors:NotePending(target)
   end
 
   local code, desc = self:Cast(target)
@@ -677,14 +640,12 @@ end
 ---@class InterruptOptions
 ---@field playersOnly? boolean  Only consider Player-type targets. Defaults to false.
 ---@field customRange? number   Override max range (yards). Defaults to the spell's max_range.
----@field losCheck?    boolean  Skip line-of-sight check when false. Defaults to true.
 
 ---@param options? InterruptOptions
 function SpellWrapper:Interrupt(options)
   options            = options or {}
   local players_only = options.playersOnly or false
   local custom_range = options.customRange
-  local los_check    = options.losCheck ~= false
 
   local mode         = AegisSettings.AegisInterruptMode or 0
   if mode == 2 then
@@ -781,12 +742,7 @@ function SpellWrapper:Interrupt(options)
 
     if not in_range then goto continue end
 
-    if los_check and Me.obj_ptr and target.obj_ptr then
-      if Aegis.Errors and Aegis.Errors:IsLOSBlocked(target) then goto continue end
-    end
-
     if not Me:InMeleeRange(target) and Me.obj_ptr and target.obj_ptr then
-      if Aegis.Errors and Aegis.Errors:IsFrontBlocked(target) then goto continue end
       local fok, facing = pcall(game.is_facing, Me.obj_ptr, target.obj_ptr)
       if fok and not facing then goto continue end
     end
@@ -895,18 +851,6 @@ function SpellWrapper:CastQueued(target, opts)
 
   if target and target ~= Me then
     if not self:InRange(target) then return false end
-    if Aegis.Errors and Aegis.Errors:IsLOSBlocked(target) then return false end
-    local target_is_friend = false
-    if Me and Me.CanAttack then
-      target_is_friend = not Me:CanAttack(target)
-    end
-    if not opts.skipfacing and not target_is_friend and not self:IsHelpful() then
-      if Aegis.Errors and Aegis.Errors:IsFrontBlocked(target) then return false end
-    end
-  end
-
-  if Aegis.Errors and target and target ~= Me then
-    Aegis.Errors:NotePending(target)
   end
 
   local code, desc = self:Cast(target)

@@ -217,6 +217,22 @@ function Unit:DeadOrGhost()
   return ok and result or self.IsDead
 end
 
+---Missing power for the given slot. Defaults to slot 0 (active display
+---power: mana / rage / energy / focus, matching `Power` / `MaxPower`).
+---Returns max(0, max - current) so the result is never negative even if
+---the unit briefly overflows its cap.
+---@param power_type? number Power slot index (0 = primary, 2 = combo points, …).
+---@return number
+function Unit:PowerDeficit(power_type)
+  power_type = power_type or 0
+  if power_type == 0 then
+    return math.max(0, (self.MaxPower or 0) - (self.Power or 0))
+  end
+  local maxp = self.MaxPowers and self.MaxPowers[power_type] or 0
+  local curp = self.Powers and self.Powers[power_type] or 0
+  return math.max(0, maxp - curp)
+end
+
 function Unit:CanAttack(other)
   if not other then
     return false

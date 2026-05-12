@@ -1,4 +1,4 @@
--- Aegis Core — PvE behavior framework for jmrMoP.
+-- Aegis Core — PvE behavior framework for jmrTBC.
 
 local Plugin                     = {}
 Plugin.name                      = "Aegis Core"
@@ -64,11 +64,6 @@ local CORE_DEFAULTS = {
   AegisSpellQueueSlackMs     = 75,
 
   AegisCastSuccessThrottleMs = 30,
-
-  AegisRacialDamageMode      = 0,
-  AegisRacialInterrupts      = false,
-  AegisRacialGiftEnabled     = true,
-  AegisRacialGiftPct         = 45,
 }
 
 local function load_settings()
@@ -87,70 +82,25 @@ local save_cooldown = 0
 
 
 local function load_modules()
-  include("common/debug.lua")
-  include("common/utils.lua")
-  include("common/cache.lua")
-
-  include("common/group.lua")
   include("common/targeting.lua")
 
   local UnitMod = include("common/unit.lua")
-  if UnitMod then
-    Unit = UnitMod
-  end
+  if UnitMod then Unit = UnitMod end
 
   local PlayerMod = include("common/player.lua")
-  if PlayerMod then
-    Player = PlayerMod
-  end
+  if PlayerMod then Player = PlayerMod end
 
   local PetMod = include("common/pet.lua")
   if PetMod then Pet = PetMod end
 
   include("common/spell.lua")
-  local ItemMod = include("common/item.lua")
-  if ItemMod then Item = ItemMod end
-
-  local CooldownsMod = include("common/cooldowns.lua")
-  if CooldownsMod then Cooldowns = CooldownsMod end
-
   include("common/menu.lua")
-
-  local InterruptsMod = include("common/interrupts.lua")
-  if InterruptsMod then Interrupts = InterruptsMod end
-
-  local RacialsMod = include("common/racials.lua")
-  if RacialsMod then Racials = RacialsMod end
-
-  local TotemKeybindMod = include("common/totem_keybind.lua")
-  if TotemKeybindMod then TotemKeybind = TotemKeybindMod end
 
   local BehaviorToggleMod = include("common/behavior_toggle.lua")
   if BehaviorToggleMod then BehaviorToggle = BehaviorToggleMod end
 
   local RangeTargetMod = include("common/range_target.lua")
   if RangeTargetMod then RangeTarget = RangeTargetMod end
-
-  local EncounterMod = include("common/encounter.lua")
-  if EncounterMod then Encounter = EncounterMod end
-
-  local FriendlyDispelsMod = include("common/friendly_dispels.lua")
-  if FriendlyDispelsMod then FriendlyDispels = FriendlyDispelsMod end
-
-  local OffensiveDispelsMod = include("common/offensive_dispels.lua")
-  if OffensiveDispelsMod then OffensiveDispels = OffensiveDispelsMod end
-
-  local CrowdControlMod = include("common/crowd_control.lua")
-  if CrowdControlMod then CrowdControl = CrowdControlMod end
-
-  local AntiFearMod = include("common/anti_fear.lua")
-  if AntiFearMod then AntiFear = AntiFearMod end
-
-  local DefensiveMod = include("common/defensive.lua")
-  if DefensiveMod then Defensive = DefensiveMod end
-
-  local ErrorCache = include("common/error_cache.lua")
-  if ErrorCache then Aegis.Errors = ErrorCache end
 
   local ClassData = include("data/classes.lua")
   Aegis._class_data = ClassData
@@ -272,12 +222,6 @@ function Plugin.onTick()
     end
   end
 
-  if TotemKeybind then
-    pcall(TotemKeybind.Tick, "Elem")
-    pcall(TotemKeybind.Tick, "Enh")
-    pcall(TotemKeybind.Tick, "Resto")
-  end
-
   if BehaviorToggle then pcall(BehaviorToggle.Tick) end
 
   if not AegisSettings.AegisEnabled then return end
@@ -288,8 +232,6 @@ function Plugin.onTick()
 
   Aegis._tick_throttled = false
   Aegis._spell_debug_tick = (Aegis._spell_debug_tick or 0) + 1
-
-  if Aegis.Errors then pcall(Aegis.Errors.Tick, Aegis.Errors) end
 
   refresh_entities()
   refresh_me()
@@ -364,9 +306,6 @@ function Plugin.onDraw()
   Menu:Draw()
   if Spell and Spell.DrawDebugWindow then
     pcall(Spell.DrawDebugWindow, Spell)
-  end
-  if TotemKeybind then
-    pcall(TotemKeybind.DrawWarning)
   end
   if BehaviorToggle then
     pcall(BehaviorToggle.DrawIndicator)

@@ -16,13 +16,11 @@
 Me = nil
 
 ---@class Aegis
----@field Cache AegisCache
 ---@field Debug AegisDebug
 ---@field Utils AegisUtils
 ---@field Errors table Error-cache module (LOS/facing pending state).
 ---@field include fun(rel_path: string): any Loads a Aegis module by relative path.
 ---@field _entity_cache table Last `game.objects` snapshot.
----@field _last_tick number Monotonic tick counter shared by Cache.
 Aegis = Aegis or {}
 
 ---@class AegisSettings
@@ -40,10 +38,6 @@ Aegis = Aegis or {}
 ---@field AegisSpellQueueWindowMs number
 ---@field AegisSpellQueueSlackMs number
 ---@field AegisCastSuccessThrottleMs number
----@field AegisRacialDamageMode number
----@field AegisRacialInterrupts boolean
----@field AegisRacialGiftEnabled boolean
----@field AegisRacialGiftPct number
 ---@field AegisCoreDebug boolean
 ---@field AegisSpellDebug boolean
 AegisSettings = AegisSettings or {}
@@ -71,9 +65,6 @@ Item = Item or {}
 
 ---@type Menu
 Menu = Menu or {}
-
----@type Cooldowns
-Cooldowns = Cooldowns or {}
 
 ---@type Interrupts
 Interrupts = Interrupts or {}
@@ -108,10 +99,9 @@ AntiFear = AntiFear or {}
 ---@type Defensive
 Defensive = Defensive or {}
 
--- Enums (BehaviorType, GroupRole, UnitReaction) are defined at runtime in
--- system/behavior.lua and common/group.lua. The language server picks them
--- up from there — duplicating the @enum here would trip a "duplicate
--- defined alias" warning.
+-- BehaviorType enum is defined at runtime in system/behavior.lua. The
+-- language server picks it up from there — duplicating the @enum here
+-- would trip a "duplicate defined alias" warning.
 
 -- ---------------------------------------------------------------------------
 -- jmrTBC host API (console, imgui, cleu, wow, game, SCRIPTS_DIR, print) lives
