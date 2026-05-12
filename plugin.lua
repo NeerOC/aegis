@@ -208,7 +208,6 @@ end
 
 local TICK_RATE = 0.05
 local last_tick = 0
-local _dot_dbg_last = 0
 
 function Plugin.onTick()
   if not initialized then
@@ -284,19 +283,6 @@ function Plugin.onTick()
   if now - save_cooldown > 5 then
     save_settings()
     save_cooldown = now
-  end
-
-  if now - _dot_dbg_last > 1 then
-    _dot_dbg_last = now
-    local total = Spell.Corruption and Spell.Corruption.DotTotal
-        and Spell.Corruption:DotTotal()
-    local d = Aegis._dot_last or {}
-    console.log(string.format(
-      "[dotdbg] Corruption total=%s | base=%s school=%s dur=%ss sp=%s coef=%.2f penalty=%.2f req=%s plvl=%s",
-      tostring(total),
-      tostring(d.base), tostring(d.school), tostring(d.duration),
-      tostring(d.sp), d.coef or 0, d.penalty or 0,
-      tostring(d.req_lvl), tostring(d.player_lvl)))
   end
 end
 

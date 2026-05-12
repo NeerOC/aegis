@@ -57,10 +57,7 @@ local _summons_cache_tick = -1
 local PET_DEBUG_MAX = 80
 
 local function tick_key()
-  if Aegis then
-    return Aegis._spell_debug_tick or Aegis._last_tick or 0
-  end
-  return 0
+  return (Aegis and Aegis._spell_debug_tick) or 0
 end
 
 local function pet_debug_log(entry)
@@ -69,10 +66,6 @@ local function pet_debug_log(entry)
 
   entry.kind = "PET"
   entry.time = entry.time or os.clock()
-  if Aegis.SpellDebugLog then
-    Aegis.SpellDebugLog(entry)
-    return
-  end
 
   Aegis._spell_debug_log = Aegis._spell_debug_log or {}
   Aegis._spell_debug_idx = (Aegis._spell_debug_idx or 0) + 1

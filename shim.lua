@@ -80,6 +80,9 @@
 ---@field is_moving             fun(): boolean
 ---@field stop_moving           fun(): boolean
 
+---@class wow
+---@field with_mouseover fun(u: any, fn: fun(token: string): any): any  Cross-VM unit-token swap. Sets mouseover to `u`'s GUID, calls `fn("mouseover")`, restores. Installed below if the host exposes `wow.set_mouseover_guid`.
+
 -- Note: no load guard here. Aegis's dev loop relies on END-key reloads
 -- re-running onEnable (and hence this shim) to pick up edits. All setup
 -- below is idempotent (function re-definitions, table rebinds), so
