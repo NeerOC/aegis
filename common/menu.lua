@@ -1,5 +1,5 @@
--- Aegis menu — modern dark UI with sidebar nav, persistent top strip,
--- and tab dispatch into common/menu/tab_*.lua.
+-- Aegis menu — modern dark UI with sidebar nav and tab dispatch into
+-- common/menu/tab_*.lua.
 
 local imgui = require("imgui")
 
@@ -12,7 +12,7 @@ Menu.Open = true
 Menu._tab = Menu._tab or 1
 
 -- Sub-modules loaded once at initialize time.
-local Theme, Widgets, TopBar, Sidebar
+local Theme, Widgets, Sidebar
 local Tabs = {}
 
 local function load_submodules()
@@ -23,7 +23,6 @@ local function load_submodules()
   end
   Theme   = inc("common/menu/theme.lua")
   Widgets = inc("common/menu/widgets.lua")
-  TopBar  = inc("common/menu/topbar.lua")
   Sidebar = inc("common/menu/sidebar.lua")
   Tabs[1] = inc("common/menu/tab_dashboard.lua")
   Tabs[2] = inc("common/menu/tab_rotation.lua")
@@ -66,11 +65,6 @@ function Menu:Draw()
     return
   end
   if open == false then self.Open = false end
-
-  -- Top status strip (handles its own X-close request).
-  local close_ref = { value = false }
-  TopBar.Draw(close_ref)
-  if close_ref.value then self.Open = false end
 
   -- Sidebar + tab content. Each tab owns its own begin_child wrapper sized
   -- explicitly from the parts manifest (Widgets.tab_height) so the window's

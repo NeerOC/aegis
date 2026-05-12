@@ -301,6 +301,23 @@ function Plugin.onDraw()
   if Spell and Spell.DrawDebugWindow then
     pcall(Spell.DrawDebugWindow, Spell)
   end
+
+  -- World-space "Rotation: DISABLED" label above the player when the
+  -- master rotation toggle is off. Pure yellow so it's visible against
+  -- any backdrop without competing with the cyan menu accent.
+  -- NB: Plugin.onTick early-returns before refresh_me() when the rotation
+  -- is disabled, so Me.Position would be frozen at the toggle-off moment.
+  -- Read the LIVE player position via the wow.* surface instead.
+  if not AegisSettings.AegisEnabled and imgui.draw_world_text and wow and wow.active_player and wow.entity_position then
+    local player = wow.active_player()
+    if player and player ~= 0 then
+      local px, py, pz = wow.entity_position(player)
+      if px and py and pz then
+        local yellow = imgui.color_u32(1.0, 1.0, 0.0, 1.0)
+        imgui.draw_world_text(px, py, pz + 3.0, yellow, "Rotation: DISABLED")
+      end
+    end
+  end
 end
 
 return Plugin
