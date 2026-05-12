@@ -144,8 +144,13 @@ function SpellWrapper:CastTime()
 end
 
 local SCHOOL_INDEX = {
-  Physical = 1, Holy = 2, Fire = 3, Nature = 4,
-  Frost    = 5, Shadow = 6, Arcane = 7,
+  Physical = 1,
+  Holy = 2,
+  Fire = 3,
+  Nature = 4,
+  Frost = 5,
+  Shadow = 6,
+  Arcane = 7,
 }
 
 ---@return number|nil total Scaled DoT damage, or nil when not a parseable DoT.
@@ -204,12 +209,12 @@ function SpellWrapper:DotTotal()
     return nil
   end
 
-  local school   = tostring(wow.read_lua_path("__aegis_dot_school") or "")
-  local duration = tonumber(wow.read_lua_path("__aegis_dot_duration")) or 0
-  local req_lvl  = tonumber(wow.read_lua_path("__aegis_dot_req_lvl")) or 0
+  local school     = tostring(wow.read_lua_path("__aegis_dot_school") or "")
+  local duration   = tonumber(wow.read_lua_path("__aegis_dot_duration")) or 0
+  local req_lvl    = tonumber(wow.read_lua_path("__aegis_dot_req_lvl")) or 0
 
   ---@type number
-  local sp = 0
+  local sp         = 0
   local school_idx = SCHOOL_INDEX[school]
   if school_idx and wow.eval_lua then
     local ok, v = pcall(wow.eval_lua, "GetSpellBonusDamage(" .. school_idx .. ")")
@@ -226,18 +231,18 @@ function SpellWrapper:DotTotal()
     penalty = math.min(1.0, (req_lvl + 11) / player_lvl)
   end
 
-  local scaled = base + sp * coef * penalty
+  local scaled       = base + sp * coef * penalty
 
-  Aegis._dot_last = {
-    base     = base,
-    school   = school,
-    duration = duration,
-    req_lvl  = req_lvl,
+  Aegis._dot_last    = {
+    base       = base,
+    school     = school,
+    duration   = duration,
+    req_lvl    = req_lvl,
     player_lvl = player_lvl,
-    sp       = sp,
-    coef     = coef,
-    penalty  = penalty,
-    scaled   = scaled,
+    sp         = sp,
+    coef       = coef,
+    penalty    = penalty,
+    scaled     = scaled,
   }
 
   self._dot_total    = scaled
@@ -349,13 +354,13 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   else
     opts = { skipUsable = opts or false, skipFacing = skipusable2 or false, skipLos = skiplos2 or false }
   end
-  local skipusable   = opts.skipUsable   or false
-  local skipfacing  = opts.skipFacing   or false
-  local skiplos     = opts.skipLos      or false
-  local skipmoving  = opts.skipMoving   or false
-  local debugging = AegisSettings and AegisSettings.AegisSpellDebug or false
-  local tgt_name = target and target.Name or "self"
-  local tgt_hp   = target and target.HealthPct or nil
+  local skipusable = opts.skipUsable or false
+  local skipfacing = opts.skipFacing or false
+  local skiplos    = opts.skipLos or false
+  local skipmoving = opts.skipMoving or false
+  local debugging  = AegisSettings and AegisSettings.AegisSpellDebug or false
+  local tgt_name   = target and target.Name or "self"
+  local tgt_hp     = target and target.HealthPct or nil
 
   if self.Id == 0 or not self.IsKnown then
     return false
@@ -367,19 +372,31 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   local now = os.clock()
   if now < self._fail_until then
     if debugging then
-      spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-        target = tgt_name, target_hp = tgt_hp,
-        result = "SKIP", reason = "fail_backoff",
-        detail = string.format("until=%.2f", self._fail_until) })
+      spell_debug_log({
+        time = now,
+        spell = self.Name,
+        id = self.Id,
+        target = tgt_name,
+        target_hp = tgt_hp,
+        result = "SKIP",
+        reason = "fail_backoff",
+        detail = string.format("until=%.2f", self._fail_until)
+      })
     end
     return false
   end
   if now < self._cast_until then
     if debugging then
-      spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-        target = tgt_name, target_hp = tgt_hp,
-        result = "SKIP", reason = "cast_throttle",
-        detail = string.format("until=%.2f", self._cast_until) })
+      spell_debug_log({
+        time = now,
+        spell = self.Name,
+        id = self.Id,
+        target = tgt_name,
+        target_hp = tgt_hp,
+        result = "SKIP",
+        reason = "cast_throttle",
+        detail = string.format("until=%.2f", self._cast_until)
+      })
     end
     return false
   end
@@ -387,10 +404,16 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   local id_throttle = Aegis._cast_throttle_by_id[self.Id] or 0
   if now < id_throttle then
     if debugging then
-      spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-        target = tgt_name, target_hp = tgt_hp,
-        result = "SKIP", reason = "double_cast_id",
-        detail = string.format("until=%.2f", id_throttle) })
+      spell_debug_log({
+        time = now,
+        spell = self.Name,
+        id = self.Id,
+        target = tgt_name,
+        target_hp = tgt_hp,
+        result = "SKIP",
+        reason = "double_cast_id",
+        detail = string.format("until=%.2f", id_throttle)
+      })
     end
     return false
   end
@@ -400,10 +423,16 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     local ok, usable = pcall(game.is_usable_spell, self.Id)
     if ok and not usable then
       if debugging then
-        spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-          target = tgt_name, target_hp = tgt_hp,
-          result = "SKIP", reason = "not_usable",
-          detail = "is_usable_spell=false" })
+        spell_debug_log({
+          time = now,
+          spell = self.Name,
+          id = self.Id,
+          target = tgt_name,
+          target_hp = tgt_hp,
+          result = "SKIP",
+          reason = "not_usable",
+          detail = "is_usable_spell=false"
+        })
       end
       return false
     end
@@ -413,10 +442,16 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   local cok, cd = pcall(game.spell_cooldown, self.Id)
   if cok and cd and cd.on_cooldown then
     if debugging then
-      spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-        target = tgt_name, target_hp = tgt_hp,
-        result = "SKIP", reason = "on_cooldown",
-        detail = string.format("dur=%.1f", cd.duration or 0) })
+      spell_debug_log({
+        time = now,
+        spell = self.Name,
+        id = self.Id,
+        target = tgt_name,
+        target_hp = tgt_hp,
+        result = "SKIP",
+        reason = "on_cooldown",
+        detail = string.format("dur=%.1f", cd.duration or 0)
+      })
     end
     return false
   end
@@ -425,10 +460,16 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     local ct = self:CastTime()
     if ct > 0 then
       if debugging then
-        spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-          target = tgt_name, target_hp = tgt_hp,
-          result = "SKIP", reason = "moving",
-          detail = string.format("cast_time=%.2f", ct) })
+        spell_debug_log({
+          time = now,
+          spell = self.Name,
+          id = self.Id,
+          target = tgt_name,
+          target_hp = tgt_hp,
+          result = "SKIP",
+          reason = "moving",
+          detail = string.format("cast_time=%.2f", ct)
+        })
       end
       return false
     end
@@ -441,9 +482,16 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
 
   if target and target ~= Me and not self:InRange(target) then
     if debugging then
-      spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-        target = tgt_name, target_hp = tgt_hp, target_dist = dist,
-        result = "SKIP", reason = "out_of_range" })
+      spell_debug_log({
+        time = now,
+        spell = self.Name,
+        id = self.Id,
+        target = tgt_name,
+        target_hp = tgt_hp,
+        target_dist = dist,
+        result = "SKIP",
+        reason = "out_of_range"
+      })
     end
     return false
   end
@@ -455,32 +503,53 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   end
 
   if not point_blank and not skiplos
-     and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
+      and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
     if Aegis.Errors and Aegis.Errors:IsLOSBlocked(target) then
       if debugging then
-        spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-          target = tgt_name, target_hp = tgt_hp, target_dist = dist,
-          result = "SKIP", reason = "no_los_cached" })
+        spell_debug_log({
+          time = now,
+          spell = self.Name,
+          id = self.Id,
+          target = tgt_name,
+          target_hp = tgt_hp,
+          target_dist = dist,
+          result = "SKIP",
+          reason = "no_los_cached"
+        })
       end
       return false
     end
   end
   if not point_blank and not skipfacing and not target_is_friend and not self:IsHelpful()
-     and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
+      and target and target ~= Me and Me and Me.obj_ptr and target.obj_ptr then
     if Aegis.Errors and Aegis.Errors:IsFrontBlocked(target) then
       if debugging then
-        spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-          target = tgt_name, target_hp = tgt_hp, target_dist = dist,
-          result = "SKIP", reason = "not_facing_cached" })
+        spell_debug_log({
+          time = now,
+          spell = self.Name,
+          id = self.Id,
+          target = tgt_name,
+          target_hp = tgt_hp,
+          target_dist = dist,
+          result = "SKIP",
+          reason = "not_facing_cached"
+        })
       end
       return false
     end
     local fok, facing = pcall(game.is_facing, Me.obj_ptr, target.obj_ptr)
     if fok and not facing then
       if debugging then
-        spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-          target = tgt_name, target_hp = tgt_hp, target_dist = dist,
-          result = "SKIP", reason = "not_facing" })
+        spell_debug_log({
+          time = now,
+          spell = self.Name,
+          id = self.Id,
+          target = tgt_name,
+          target_hp = tgt_hp,
+          target_dist = dist,
+          result = "SKIP",
+          reason = "not_facing"
+        })
       end
       return false
     end
@@ -497,13 +566,19 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
   local code, desc = self:Cast(target)
 
   if debugging then
-    spell_debug_log({ time = now, spell = self.Name, id = self.Id,
-      target = tgt_name, target_hp = tgt_hp, target_dist = dist > 0 and dist or nil,
+    spell_debug_log({
+      time = now,
+      spell = self.Name,
+      id = self.Id,
+      target = tgt_name,
+      target_hp = tgt_hp,
+      target_dist = dist > 0 and dist or nil,
       result = RESULT_NAMES[code] or string.format("FAIL(%d)", code),
       reason = desc or "",
       detail = string.format("usable=%s cd=%s",
         tostring(is_usable),
-        (cok and cd) and (cd.on_cooldown and "yes" or "no") or "?") })
+        (cok and cd) and (cd.on_cooldown and "yes" or "no") or "?")
+    })
   end
 
   if code == RESULT_SUCCESS or code == RESULT_QUEUED then
@@ -606,12 +681,12 @@ end
 
 ---@param options? InterruptOptions
 function SpellWrapper:Interrupt(options)
-  options = options or {}
+  options            = options or {}
   local players_only = options.playersOnly or false
   local custom_range = options.customRange
   local los_check    = options.losCheck ~= false
 
-  local mode = AegisSettings.AegisInterruptMode or 0
+  local mode         = AegisSettings.AegisInterruptMode or 0
   if mode == 2 then
     return false
   end
@@ -842,14 +917,14 @@ function SpellWrapper:CastQueued(target, opts)
     Aegis._last_cast_tgt  = target and target.Name or "self"
     Aegis._last_cast_code = code
     Aegis._last_cast_desc = desc or ""
-    self._fail_until       = 0
-    self._cast_until       = now + CAST_THROTTLE
+    self._fail_until      = 0
+    self._cast_until      = now + CAST_THROTTLE
     return true
   elseif code == RESULT_THROTTLED or code == RESULT_NOT_READY or code == RESULT_ON_CD then
     self._queue_attempt_until = now + rand_queue_throttle()
     return false
   else
-    self._fail_until       = now + FAIL_BACKOFF
+    self._fail_until      = now + FAIL_BACKOFF
     Aegis._last_fail      = self.Name
     Aegis._last_fail_time = now
     Aegis._last_fail_code = code
@@ -977,7 +1052,7 @@ end
 --- Configured spell-queue window in seconds.
 function Spell:SpellQueueWindow()
   local ms = AegisSettings and (AegisSettings.AegisSpellQueueWindowMs
-                                  or AegisSettings.AegisSpellQueueSlackMs)
+    or AegisSettings.AegisSpellQueueSlackMs)
   local n = tonumber(ms)
   if n and n > 0 then
     if n > 10 then return n / 1000 end

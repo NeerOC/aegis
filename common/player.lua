@@ -86,7 +86,6 @@ function Player:StartWanding(target)
   return not Me:IsMoving() and Spell.Shoot:CastEx(target)
 end
 
-
 ---@return boolean - true if the player is eating or drinking, false otherwise
 function Player:IsEatingOrDrinking()
   return Me:HasAura("Drink") or Me:HasAura("Food")
@@ -101,14 +100,14 @@ function Player:InGroup()
 end
 
 function Player:IsInOurPartyOrRaid()
-      local ok, roster = pcall(game.group_members)
-      if ok and roster then
-        for _, m in ipairs(roster) do
-          if m.guid_lo == self.Guid then
-            return true
-          end
-        end
+  local ok, roster = pcall(game.group_members)
+  if ok and roster then
+    for _, m in ipairs(roster) do
+      if m.guid_lo == self.Guid then
+        return true
       end
+    end
+  end
 end
 
 return Player

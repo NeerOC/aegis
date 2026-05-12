@@ -129,15 +129,15 @@ local CLASSIFICATION_NAMES = {
 -- Class IDs: Warrior=1, Paladin=2, Hunter=3, Rogue=4, Priest=5, Shaman=7,
 -- Mage=8, Warlock=9, Druid=11.
 local TBC_SPEC_MAP = {
-  [1]  = { [0] = "Arms", [1] = "Fury", [2] = "Protection" },                  -- Warrior
-  [2]  = { [0] = "Holy", [1] = "Protection", [2] = "Retribution" },           -- Paladin
-  [3]  = { [0] = "Beast Mastery", [1] = "Marksmanship", [2] = "Survival" },   -- Hunter
-  [4]  = { [0] = "Assassination", [1] = "Combat", [2] = "Subtlety" },         -- Rogue
-  [5]  = { [0] = "Discipline", [1] = "Holy", [2] = "Shadow" },                -- Priest
-  [7]  = { [0] = "Elemental", [1] = "Enhancement", [2] = "Restoration" },     -- Shaman
-  [8]  = { [0] = "Arcane", [1] = "Fire", [2] = "Frost" },                     -- Mage
-  [9]  = { [0] = "Affliction", [1] = "Demonology", [2] = "Destruction" },     -- Warlock
-  [11] = { [0] = "Balance", [1] = "Feral Combat", [2] = "Restoration" },      -- Druid
+  [1]  = { [0] = "Arms", [1] = "Fury", [2] = "Protection" },                -- Warrior
+  [2]  = { [0] = "Holy", [1] = "Protection", [2] = "Retribution" },         -- Paladin
+  [3]  = { [0] = "Beast Mastery", [1] = "Marksmanship", [2] = "Survival" }, -- Hunter
+  [4]  = { [0] = "Assassination", [1] = "Combat", [2] = "Subtlety" },       -- Rogue
+  [5]  = { [0] = "Discipline", [1] = "Holy", [2] = "Shadow" },              -- Priest
+  [7]  = { [0] = "Elemental", [1] = "Enhancement", [2] = "Restoration" },   -- Shaman
+  [8]  = { [0] = "Arcane", [1] = "Fire", [2] = "Frost" },                   -- Mage
+  [9]  = { [0] = "Affliction", [1] = "Demonology", [2] = "Destruction" },   -- Warlock
+  [11] = { [0] = "Balance", [1] = "Feral Combat", [2] = "Restoration" },    -- Druid
 }
 
 -- Local-player-only spec derivation. We can only walk the talent list for
@@ -280,11 +280,11 @@ local function wrap_entity(e)
       level                 = e.level or 0,
       unit_flags            = unit_flags,
       unit_flags2           = e.unit_flags2 or 0,
-      unit_flags3           = 0,  -- MoP-only, stub
+      unit_flags3           = 0, -- MoP-only, stub
       power                 = e.power or 0,
       max_power             = (e.max_power and e.max_power > 0) and e.max_power or 1,
       power_type            = e.power_type or 0,
-      class_id              = e.class or 0,  -- numeric class (warrior=1, paladin=2, ...)
+      class_id              = e.class or 0, -- numeric class (warrior=1, paladin=2, ...)
       race                  = e.race or 0,
       is_dead               = e.is_dead or false,
       is_player             = is_player,
@@ -310,8 +310,8 @@ local function wrap_entity(e)
       attack_time_ranged    = e.attack_time_ranged or 0,
       powers                = e.powers or {},
       max_powers            = e.max_powers or {},
-      spec_id               = local_spec_id(e),    -- 1-based tab index (talent-derived on local player, else 0)
-      spec_name             = local_spec_name(e),  -- talent-derived spec name ("Retribution", ...) or "" on other players
+      spec_id               = local_spec_id(e),   -- 1-based tab index (talent-derived on local player, else 0)
+      spec_name             = local_spec_name(e), -- talent-derived spec name ("Retribution", ...) or "" on other players
       dynamic_flags         = e.dynamic_flags or 0,
       is_lootable           = ((e.obj_dynamic_flags or 0) % 2) == 1,
     }, {

@@ -55,18 +55,16 @@ local function draw_widget(w)
   if w.type == "checkbox" then
     local changed, val = imgui.checkbox(label, AegisSettings[safe_uid] or false)
     if changed then AegisSettings[safe_uid] = val end
-
   elseif w.type == "slider" then
-    local lo  = w.min or 0
-    local hi  = w.max or 100
-    local cur = AegisSettings[safe_uid] or w.default or lo
+    local lo           = w.min or 0
+    local hi           = w.max or 100
+    local cur          = AegisSettings[safe_uid] or w.default or lo
     local changed, val = imgui.slider_int(label, cur, lo, hi)
     if changed then AegisSettings[safe_uid] = val end
-
   elseif w.type == "combobox" then
     if not w.options or type(w.options) ~= "table" then return end
-    local cur_idx  = AegisSettings[safe_uid] or 0
-    local preview  = w.options[cur_idx + 1] or "(none)"
+    local cur_idx = AegisSettings[safe_uid] or 0
+    local preview = w.options[cur_idx + 1] or "(none)"
     if imgui.begin_combo(label, preview) then
       for i, opt in ipairs(w.options) do
         local sel = (i - 1 == cur_idx)
@@ -198,12 +196,14 @@ function Menu:Draw()
     end
 
     if AegisSettings.AegisInterruptTiming == nil then AegisSettings.AegisInterruptTiming = false end
-    local timing_changed, timing_val = imgui.checkbox("Enable Advanced Timing##aegis_timing", AegisSettings.AegisInterruptTiming)
+    local timing_changed, timing_val = imgui.checkbox("Enable Advanced Timing##aegis_timing",
+      AegisSettings.AegisInterruptTiming)
     if timing_changed then AegisSettings.AegisInterruptTiming = timing_val end
 
     if AegisSettings.AegisInterruptTiming then
       if AegisSettings.AegisInterruptPercentage == nil then AegisSettings.AegisInterruptPercentage = 80 end
-      local pct_changed, pct_val = imgui.slider_int("Interrupt at %##aegis_interrupt_pct", AegisSettings.AegisInterruptPercentage, 10, 95)
+      local pct_changed, pct_val = imgui.slider_int("Interrupt at %##aegis_interrupt_pct",
+        AegisSettings.AegisInterruptPercentage, 10, 95)
       if pct_changed then AegisSettings.AegisInterruptPercentage = pct_val end
       imgui.text("Interrupts casts when ≤" .. (AegisSettings.AegisInterruptPercentage or 80) .. "% complete")
       imgui.text("Channels interrupted after random delay (700ms ± 400ms)")

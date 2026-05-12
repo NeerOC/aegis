@@ -1,6 +1,6 @@
 -- TBC Classic 2.5.x reference table for snares, CCs, dispel categories.
 
-local M = {}
+local M          = {}
 
 -- 0=None, 1=Magic, 2=Curse, 3=Disease, 4=Poison, 9=Enrage
 M.DISPEL_NONE    = 0
@@ -19,20 +19,20 @@ M.DISPEL_ENRAGE  = 9
 --   Totem / Disease Cleansing Totem):                      Poison, Disease
 -- Hunter (Tranquilizing Shot — only enrage):               Enrage
 -- Warlock Felhunter Devour Magic / Imp Spell Lock — Magic
-M.CLASS_DISPELS = {
-  DRUID   = { [M.DISPEL_CURSE] = true, [M.DISPEL_POISON]  = true },
+M.CLASS_DISPELS  = {
+  DRUID   = { [M.DISPEL_CURSE] = true, [M.DISPEL_POISON] = true },
   MAGE    = { [M.DISPEL_CURSE] = true },
-  PALADIN = { [M.DISPEL_MAGIC] = true, [M.DISPEL_POISON]  = true, [M.DISPEL_DISEASE] = true },
+  PALADIN = { [M.DISPEL_MAGIC] = true, [M.DISPEL_POISON] = true, [M.DISPEL_DISEASE] = true },
   PRIEST  = { [M.DISPEL_MAGIC] = true, [M.DISPEL_DISEASE] = true },
-  SHAMAN  = { [M.DISPEL_POISON]= true, [M.DISPEL_DISEASE] = true },
-  HUNTER  = { [M.DISPEL_ENRAGE]= true },
+  SHAMAN  = { [M.DISPEL_POISON] = true, [M.DISPEL_DISEASE] = true },
+  HUNTER  = { [M.DISPEL_ENRAGE] = true },
   WARLOCK = { [M.DISPEL_MAGIC] = true },
 }
 
 -- All ranks listed because rank-aware behavior gating is sometimes
 -- needed (e.g. PvP duration scaling). Categorize as both ROOT and
 -- SNARE so a single "do I have a snare on me" check catches them.
-M.ROOTS = {
+M.ROOTS          = {
   -- Frost Nova (Mage)
   [122]   = "Frost Nova",
   [865]   = "Frost Nova",
@@ -66,7 +66,7 @@ M.ROOTS = {
   -- Shockwave / Bash etc. are stuns — see STUNS
 }
 
-M.SLOWS = {
+M.SLOWS          = {
   -- Hamstring (Warrior)
   [1715]  = "Hamstring",
   [7372]  = "Hamstring",
@@ -148,7 +148,7 @@ M.SLOWS = {
   [5118]  = "Aspect of the Cheetah",
 }
 
-M.STUNS = {
+M.STUNS          = {
   -- Hammer of Justice (Paladin)
   [853]   = "Hammer of Justice",
   [5588]  = "Hammer of Justice",
@@ -195,7 +195,7 @@ M.STUNS = {
   [22915] = "Improved Concussive Shot",
 }
 
-M.INCAPACITATES = {
+M.INCAPACITATES  = {
   -- Polymorph (Mage) — Sheep
   [118]   = "Polymorph",
   [12824] = "Polymorph",
@@ -243,7 +243,7 @@ M.INCAPACITATES = {
   [18647] = "Banish",
 }
 
-M.FEARS = {
+M.FEARS          = {
   -- Fear (Warlock)
   [5782]  = "Fear",
   [6213]  = "Fear",
@@ -273,7 +273,7 @@ M.FEARS = {
   [10326] = "Turn Evil",
 }
 
-M.SILENCES = {
+M.SILENCES       = {
   -- Silence (Priest Shadow talent)
   [15487] = "Silence",
   -- Counterspell (Mage)
@@ -289,7 +289,7 @@ M.SILENCES = {
   [28730] = "Arcane Torrent",
 }
 
-M.DISARMS = {
+M.DISARMS        = {
   [676]   = "Disarm",
   [51722] = "Dismantle",
 }
@@ -325,16 +325,25 @@ merge(M.ALL_CC, M.DISARMS)
 -- Predicate helpers — pass a spell ID, get a bool.
 -- ─────────────────────────────────────────────────────────────────────
 
-function M.IsRoot(id)         return id and M.ROOTS[id]         ~= nil end
-function M.IsSlow(id)         return id and M.SLOWS[id]         ~= nil end
-function M.IsSnare(id)        return id and M.SNARES[id]        ~= nil end
-function M.IsStun(id)         return id and M.STUNS[id]         ~= nil end
+function M.IsRoot(id) return id and M.ROOTS[id] ~= nil end
+
+function M.IsSlow(id) return id and M.SLOWS[id] ~= nil end
+
+function M.IsSnare(id) return id and M.SNARES[id] ~= nil end
+
+function M.IsStun(id) return id and M.STUNS[id] ~= nil end
+
 function M.IsIncapacitate(id) return id and M.INCAPACITATES[id] ~= nil end
-function M.IsFear(id)         return id and M.FEARS[id]         ~= nil end
-function M.IsSilence(id)      return id and M.SILENCES[id]      ~= nil end
-function M.IsDisarm(id)       return id and M.DISARMS[id]       ~= nil end
-function M.IsHardCC(id)       return id and M.HARD_CC[id]       ~= nil end
-function M.IsCC(id)           return id and M.ALL_CC[id]        ~= nil end
+
+function M.IsFear(id) return id and M.FEARS[id] ~= nil end
+
+function M.IsSilence(id) return id and M.SILENCES[id] ~= nil end
+
+function M.IsDisarm(id) return id and M.DISARMS[id] ~= nil end
+
+function M.IsHardCC(id) return id and M.HARD_CC[id] ~= nil end
+
+function M.IsCC(id) return id and M.ALL_CC[id] ~= nil end
 
 -- Returns the human-readable name for a known classified spell ID, or
 -- nil if the ID isn't in any of our category tables. Useful for logging.
@@ -360,16 +369,45 @@ local function scan(unit, predicate)
   return false, nil
 end
 
-function M.UnitHasSnare(unit)        local has = scan(unit, M.IsSnare);        return has end
-function M.UnitHasRoot(unit)         local has = scan(unit, M.IsRoot);         return has end
-function M.UnitHasSlow(unit)         local has = scan(unit, M.IsSlow);         return has end
-function M.UnitHasStun(unit)         local has = scan(unit, M.IsStun);         return has end
-function M.UnitHasIncapacitate(unit) local has = scan(unit, M.IsIncapacitate); return has end
-function M.UnitHasFear(unit)         local has = scan(unit, M.IsFear);         return has end
-function M.UnitHasSilence(unit)      local has = scan(unit, M.IsSilence);      return has end
-function M.UnitHasDisarm(unit)       local has = scan(unit, M.IsDisarm);       return has end
-function M.UnitHasHardCC(unit)       local has = scan(unit, M.IsHardCC);       return has end
-function M.UnitHasAnyCC(unit)        local has = scan(unit, M.IsCC);           return has end
+function M.UnitHasSnare(unit)
+  local has = scan(unit, M.IsSnare); return has
+end
+
+function M.UnitHasRoot(unit)
+  local has = scan(unit, M.IsRoot); return has
+end
+
+function M.UnitHasSlow(unit)
+  local has = scan(unit, M.IsSlow); return has
+end
+
+function M.UnitHasStun(unit)
+  local has = scan(unit, M.IsStun); return has
+end
+
+function M.UnitHasIncapacitate(unit)
+  local has = scan(unit, M.IsIncapacitate); return has
+end
+
+function M.UnitHasFear(unit)
+  local has = scan(unit, M.IsFear); return has
+end
+
+function M.UnitHasSilence(unit)
+  local has = scan(unit, M.IsSilence); return has
+end
+
+function M.UnitHasDisarm(unit)
+  local has = scan(unit, M.IsDisarm); return has
+end
+
+function M.UnitHasHardCC(unit)
+  local has = scan(unit, M.IsHardCC); return has
+end
+
+function M.UnitHasAnyCC(unit)
+  local has = scan(unit, M.IsCC); return has
+end
 
 -- "Has snare AND it's of a dispel type the given class can remove."
 -- Used by behaviors to decide between "cleanse the slow" vs "freedom

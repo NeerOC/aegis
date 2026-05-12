@@ -10,25 +10,48 @@ local _bind_pending = false
 local _last_state = false
 
 local SKIP_KEYS = {
-  [0]   = true,
+  [0] = true,
   [526] = true,
-  [527] = true, [528] = true, [529] = true, [530] = true,
-  [531] = true, [532] = true, [533] = true, [534] = true,
+  [527] = true,
+  [528] = true,
+  [529] = true,
+  [530] = true,
+  [531] = true,
+  [532] = true,
+  [533] = true,
+  [534] = true,
 }
 
 local KEY_NAMES = {
-  [512]="Tab",     [513]="LeftArrow",  [514]="RightArrow",
-  [515]="UpArrow", [516]="DownArrow",  [517]="PageUp",
-  [518]="PageDown",[519]="Home",       [520]="End",
-  [521]="Insert",  [522]="Delete",     [523]="Backspace",
-  [524]="Space",   [525]="Enter",      [526]="Escape",
-  [535]="Apostrophe",[536]="Comma",    [537]="Minus",
-  [538]="Period",  [539]="Slash",      [540]="Semicolon",
-  [541]="Equal",   [542]="LeftBracket",[543]="Backslash",
-  [544]="RightBracket",[545]="GraveAccent",
+  [512] = "Tab",
+  [513] = "LeftArrow",
+  [514] = "RightArrow",
+  [515] = "UpArrow",
+  [516] = "DownArrow",
+  [517] = "PageUp",
+  [518] = "PageDown",
+  [519] = "Home",
+  [520] = "End",
+  [521] = "Insert",
+  [522] = "Delete",
+  [523] = "Backspace",
+  [524] = "Space",
+  [525] = "Enter",
+  [526] = "Escape",
+  [535] = "Apostrophe",
+  [536] = "Comma",
+  [537] = "Minus",
+  [538] = "Period",
+  [539] = "Slash",
+  [540] = "Semicolon",
+  [541] = "Equal",
+  [542] = "LeftBracket",
+  [543] = "Backslash",
+  [544] = "RightBracket",
+  [545] = "GraveAccent",
 }
 for i = 0, 25 do KEY_NAMES[546 + i] = string.char(0x41 + i) end
-for i = 0, 9  do KEY_NAMES[572 + i] = tostring(i) end
+for i = 0, 9 do KEY_NAMES[572 + i] = tostring(i) end
 for i = 1, 12 do KEY_NAMES[583 + i] = "F" .. i end
 
 local function key_label(code)
@@ -53,7 +76,7 @@ function BehaviorToggle.Tick()
       AegisSettings.AegisToggleKey = code
       _bind_pending = false
       print(string.format("[Aegis] Behavior toggle bound: %s",
-                          key_label(code)))
+        key_label(code)))
     end
     return
   end
@@ -65,7 +88,7 @@ function BehaviorToggle.Tick()
   if pressed and not _last_state then
     AegisSettings.AegisEnabled = not (AegisSettings.AegisEnabled == true)
     print(string.format("[Aegis] Rotation %s",
-        AegisSettings.AegisEnabled and "ENABLED" or "PAUSED"))
+      AegisSettings.AegisEnabled and "ENABLED" or "PAUSED"))
   end
   _last_state = pressed
 end
@@ -90,17 +113,17 @@ function BehaviorToggle.DrawIndicator()
     label = string.format("ROTATION: PAUSED  [%s to resume]", key_label(key))
   end
 
-  local w = #label * 8
-  local x = sx * 0.5 - w * 0.5
-  local y = 32
+  local w          = #label * 8
+  local x          = sx * 0.5 - w * 0.5
+  local y          = 32
 
   local col_shadow = imgui.color_u32(0, 0, 0, 1.0)
   local col_text   = on
       and imgui.color_u32(0.3, 1.0, 0.4, 1.0)
-       or imgui.color_u32(1.0, 0.4, 0.4, 1.0)
+      or imgui.color_u32(1.0, 0.4, 0.4, 1.0)
 
   imgui.draw_text(x + 1, y + 1, col_shadow, label)
-  imgui.draw_text(x,     y,     col_text,   label)
+  imgui.draw_text(x, y, col_text, label)
 end
 
 -- Drop into the menu's General section via BehaviorToggle.DrawOptions().
@@ -111,7 +134,7 @@ function BehaviorToggle.DrawOptions()
   end
 
   imgui.text(string.format("Toggle key: %s",
-      key_label(AegisSettings.AegisToggleKey)))
+    key_label(AegisSettings.AegisToggleKey)))
 
   local btn_label = _bind_pending and "Press any key..." or "Bind Toggle Key"
   if imgui.button(btn_label .. "##aegis_toggle_bind") then

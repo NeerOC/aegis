@@ -10,7 +10,7 @@ local _last_cast_at = {}
 local CLASS_SPELLS = {
   [1] = {
     emergency = {
-      { key = "LastStand", ids = { 12975 } },
+      { key = "LastStand",  ids = { 12975 } },
       { key = "ShieldWall", ids = { 871 } },
     },
     pull = { { key = "Taunt", ids = { 355 }, target = "enemy" } },
@@ -18,7 +18,7 @@ local CLASS_SPELLS = {
   [2] = {
     emergency = { { key = "DivineShield", ids = { 642, 1020 } } },
     pull = {
-      { key = "RighteousDefense", ids = { 31789 }, target = "threat_friend" },
+      { key = "RighteousDefense",     ids = { 31789 },             target = "threat_friend" },
       { key = "BlessingOfProtection", ids = { 10278, 5599, 1022 }, target = "threat_friend", non_tank_only = true },
     },
   },
@@ -29,7 +29,7 @@ local CLASS_SPELLS = {
   [4] = {
     emergency = {
       { key = "CloakOfShadows", ids = { 31224 } },
-      { key = "Vanish", ids = { 26889, 1857, 1856 } },
+      { key = "Vanish",         ids = { 26889, 1857, 1856 } },
     },
     threat = { { key = "Vanish", ids = { 26889, 1857, 1856 } } },
   },
@@ -266,7 +266,7 @@ function Defensive.TryEmergency(prefix, options)
   local encounter_trigger = false
   if AegisSettings[(prefix or "") .. "UseEncounterDefensives"] then
     encounter_trigger = lookup(_danger_names, options) ~= nil
-      and health_pct() <= (AegisSettings[(prefix or "") .. "EncounterDefensivePct"] or 70)
+        and health_pct() <= (AegisSettings[(prefix or "") .. "EncounterDefensivePct"] or 70)
   end
   if not hp_trigger and not encounter_trigger then return false end
   if not throttle_ready(prefix, "emergency", 2.0) then return false end
@@ -309,12 +309,12 @@ end
 function Defensive.Widgets(prefix, defaults)
   defaults = defaults or {}
   return {
-    { type = "checkbox", uid = prefix .. "UseDefensives", text = "Emergency defensives", default = defaults.defensives == true },
-    { type = "slider", uid = prefix .. "DefensivePct", text = "Defensive below HP %", default = defaults.defensive_pct or 25, min = 0, max = 80 },
-    { type = "checkbox", uid = prefix .. "UseEncounterDefensives", text = "Encounter defensives", default = false },
-    { type = "slider", uid = prefix .. "EncounterDefensivePct", text = "Encounter defensive below HP %", default = defaults.encounter_pct or 70, min = 0, max = 100 },
-    { type = "checkbox", uid = prefix .. "UseThreatDrop", text = "Threat drop", default = defaults.threat_drop == true },
-    { type = "checkbox", uid = prefix .. "UseThreatUtility", text = "Threat / pull utility", default = false },
+    { type = "checkbox", uid = prefix .. "UseDefensives",          text = "Emergency defensives",           default = defaults.defensives == true },
+    { type = "slider",   uid = prefix .. "DefensivePct",           text = "Defensive below HP %",           default = defaults.defensive_pct or 25, min = 0, max = 80 },
+    { type = "checkbox", uid = prefix .. "UseEncounterDefensives", text = "Encounter defensives",           default = false },
+    { type = "slider",   uid = prefix .. "EncounterDefensivePct",  text = "Encounter defensive below HP %", default = defaults.encounter_pct or 70, min = 0, max = 100 },
+    { type = "checkbox", uid = prefix .. "UseThreatDrop",          text = "Threat drop",                    default = defaults.threat_drop == true },
+    { type = "checkbox", uid = prefix .. "UseThreatUtility",       text = "Threat / pull utility",          default = false },
   }
 end
 

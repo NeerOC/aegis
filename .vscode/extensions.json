@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "sumneko.lua"
+        "sumneko.lua",
+        "jbockle.jbockle-format-files"
     ]
 }

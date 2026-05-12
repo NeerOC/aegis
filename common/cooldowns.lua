@@ -64,9 +64,9 @@ end
 
 function Cooldowns.HasBloodlust()
   return Me and (Me:HasAura(AURAS.Bloodlust)
-      or Me:HasAura(AURAS.Heroism)
-      or Me:HasAura(AURAS.Exhaustion)
-      or Me:HasAura(AURAS.Sated)) or false
+    or Me:HasAura(AURAS.Heroism)
+    or Me:HasAura(AURAS.Exhaustion)
+    or Me:HasAura(AURAS.Sated)) or false
 end
 
 function Cooldowns.IsBossTarget(target)
@@ -235,24 +235,47 @@ function Cooldowns.Widgets(prefix, defaults)
   end
 
   local widgets = {
-    { type = "text", text = defaults.header or "=== Cooldowns ===" },
-    { type = "checkbox", uid = prefix .. "UseCooldowns", text = "Use cooldowns", default = enabled_default },
-    { type = "combobox", uid = prefix .. "CooldownMode", text = "Cooldown timing", default = defaults.mode or MODE_RAID_BLOODLUST_ELSE_BOSS_LONG,
-      options = { "Bloodlust on bosses", "Boss/long fights", "On cooldown", "Manual", "Raid Bloodlust, else boss/long fights" } },
-    { type = "slider", uid = prefix .. "CooldownMinTTD", text = "Long fight TTD sec", default = defaults.min_ttd or 45, min = 0, max = 180 },
-    { type = "checkbox", uid = prefix .. "UseRacialCooldowns", text = "Racial cooldowns", default = bool_default(defaults.racials, true) },
-    { type = "checkbox", uid = prefix .. "UseTrinkets", text = "Offensive trinkets", default = bool_default(defaults.trinkets, true) },
-    { type = "checkbox", uid = prefix .. "UseClassCooldowns", text = "Class cooldowns", default = bool_default(defaults.class_cooldowns, true) },
+    { type = "text",     text = defaults.header or "=== Cooldowns ===" },
+    { type = "checkbox", uid = prefix .. "UseCooldowns",               text = "Use cooldowns", default = enabled_default },
+    {
+      type = "combobox",
+      uid = prefix .. "CooldownMode",
+      text = "Cooldown timing",
+      default = defaults.mode or MODE_RAID_BLOODLUST_ELSE_BOSS_LONG,
+      options = { "Bloodlust on bosses", "Boss/long fights", "On cooldown", "Manual", "Raid Bloodlust, else boss/long fights" }
+    },
+    { type = "slider",   uid = prefix .. "CooldownMinTTD",     text = "Long fight TTD sec", default = defaults.min_ttd or 45,                      min = 0, max = 180 },
+    { type = "checkbox", uid = prefix .. "UseRacialCooldowns", text = "Racial cooldowns",   default = bool_default(defaults.racials, true) },
+    { type = "checkbox", uid = prefix .. "UseTrinkets",        text = "Offensive trinkets", default = bool_default(defaults.trinkets, true) },
+    { type = "checkbox", uid = prefix .. "UseClassCooldowns",  text = "Class cooldowns",    default = bool_default(defaults.class_cooldowns, true) },
   }
 
   if defaults.haste_potion ~= nil then
-    widgets[#widgets + 1] = { type = "checkbox", uid = prefix .. "UseHastePotion", text = defaults.haste_text or "Haste Potion on bosses", default = defaults.haste_potion }
+    widgets[#widgets + 1] = {
+      type = "checkbox",
+      uid = prefix .. "UseHastePotion",
+      text = defaults.haste_text or
+          "Haste Potion on bosses",
+      default = defaults.haste_potion
+    }
   end
   if defaults.destruction_potion ~= nil then
-    widgets[#widgets + 1] = { type = "checkbox", uid = prefix .. "UseDestructionPotion", text = "Destruction Potion on bosses", default = defaults.destruction_potion }
+    widgets[#widgets + 1] = {
+      type = "checkbox",
+      uid = prefix .. "UseDestructionPotion",
+      text =
+      "Destruction Potion on bosses",
+      default = defaults.destruction_potion
+    }
   end
   if defaults.flame_cap ~= nil then
-    widgets[#widgets + 1] = { type = "checkbox", uid = prefix .. "UseFlameCap", text = "Flame Cap on bosses", default = defaults.flame_cap }
+    widgets[#widgets + 1] = {
+      type = "checkbox",
+      uid = prefix .. "UseFlameCap",
+      text = "Flame Cap on bosses",
+      default =
+          defaults.flame_cap
+    }
   end
 
   return widgets

@@ -10,13 +10,13 @@ Combat.BestTarget          = nil
 Combat.EnemiesInMeleeRange = 0
 Combat.Enemies             = 0
 
-local TTD_WINDOW_S = 5.0
-local TTD_STALE_S  = 30.0
-local TTD_GC_S     = 10.0
+local TTD_WINDOW_S         = 5.0
+local TTD_STALE_S          = 30.0
+local TTD_GC_S             = 10.0
 
-Combat._ttd_samples   = Combat._ttd_samples   or {}
-Combat._ttd_last_seen = Combat._ttd_last_seen or {}
-Combat._ttd_gc_at     = Combat._ttd_gc_at     or 0
+Combat._ttd_samples        = Combat._ttd_samples or {}
+Combat._ttd_last_seen      = Combat._ttd_last_seen or {}
+Combat._ttd_gc_at          = Combat._ttd_gc_at or 0
 
 function Combat:RefreshTTD()
   local now       = os.clock()
@@ -62,8 +62,8 @@ function Combat:TimeToDeath(guid)
   local buf = self._ttd_samples[guid]
   if not buf or #buf < 2 then return math.huge end
   local first, last = buf[1], buf[#buf]
-  local dt  = last[1] - first[1]
-  local dhp = first[2] - last[2]
+  local dt          = last[1] - first[1]
+  local dhp         = first[2] - last[2]
   if dt <= 0 or dhp <= 0 then return math.huge end
   return last[2] / (dhp / dt)
 end
@@ -136,7 +136,7 @@ function Combat:ExclusionFilter()
   local my_tgt_guid = Me.Target and Me.Target.Guid or ""
   local me_guid     = Me and Me.Guid or ""
   local pet_guid    = (Pet and Pet.PrimaryGuid and Pet.PrimaryGuid()) or ""
-  local keep = {}
+  local keep        = {}
   for _, u in ipairs(self.Targets) do
     if not u or not u:validTarget() then goto skip_ex end
 

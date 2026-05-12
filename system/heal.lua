@@ -26,7 +26,7 @@ end
 function Heal:Reset()
   self.PriorityList = {}
   self.HealTargets  = {}
-  self.Friends = {
+  self.Friends      = {
     Tanks   = {},
     DPS     = {},
     Healers = {},
@@ -78,7 +78,7 @@ function Heal:CollectTargets()
       local dx = mx - e.position.x
       local dy = my - e.position.y
       local dz = mz - e.position.z
-      if dx*dx + dy*dy + dz*dz > 1600 then goto skip end
+      if dx * dx + dy * dy + dz * dz > 1600 then goto skip end
     end
 
     self.HealTargets[#self.HealTargets + 1] = Unit:New(e)
@@ -120,9 +120,15 @@ function Heal:WeighFilter()
     local member = members_set[u.guid_lo]
     if not member and u.Guid ~= (Me and Me.Guid or "") then goto continue end
 
-    if u:IsTank()   then priority = priority + 20; is_tank = true end
-    if u:IsHealer() then priority = priority + 10; is_heal = true end
-    if u:IsDPS()    then priority = priority + 5;  is_dps  = true end
+    if u:IsTank() then
+      priority = priority + 20; is_tank = true
+    end
+    if u:IsHealer() then
+      priority = priority + 10; is_heal = true
+    end
+    if u:IsDPS() then
+      priority = priority + 5; is_dps = true
+    end
 
     priority = priority + (100 - u.HealthPct)
     priority = priority - ((100 - Me.PowerPct) * (mana_multi / 100))

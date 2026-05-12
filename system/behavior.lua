@@ -1,7 +1,7 @@
 -- Behavior manager (mirrors Aegis system/behavior.lua).
 
 ---@enum BehaviorType
-BehaviorType = {
+BehaviorType         = {
   Heal   = 1,
   Tank   = 2,
   Combat = 3,
@@ -12,7 +12,7 @@ BehaviorType = {
 ---@class Behavior
 ---@field LoadedClass string Class key of the currently loaded behavior file.
 ---@field LoadedSpec string Specialization name of the currently loaded behavior file.
-Behavior = Behavior or {}
+Behavior             = Behavior or {}
 Behavior.LoadedClass = ""
 Behavior.LoadedSpec  = ""
 

@@ -7,7 +7,7 @@ Targeting = {}
 Targeting.__index = Targeting
 
 function Targeting:New(o)
-  o = o or {}
+  o             = o or {}
   o.Targets     = {}
   o.HealTargets = {}
   setmetatable(o, self)
@@ -33,9 +33,12 @@ function Targeting:Reset()
   self.HealTargets = {}
 end
 
-function Targeting:CollectTargets()   end
-function Targeting:ExclusionFilter()  end
-function Targeting:InclusionFilter()  end
-function Targeting:WeighFilter()      end
+function Targeting:CollectTargets() end
+
+function Targeting:ExclusionFilter() end
+
+function Targeting:InclusionFilter() end
+
+function Targeting:WeighFilter() end
 
 return Targeting

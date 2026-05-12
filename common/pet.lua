@@ -479,7 +479,7 @@ end
 
 local function read_action(slot)
   local name, subtext, texture, is_token, is_active, autocast_allowed, autocast_enabled =
-    call_game_lua("GetPetActionInfo", slot)
+      call_game_lua("GetPetActionInfo", slot)
   if not name then
     return nil
   end
@@ -675,8 +675,8 @@ end
 
 local FEED_PET_AURA_ID    = 1539
 local FEED_PET_AURA_NAMES = { "Feed Pet Effect", "Feed Pet" }
-local _last_feed_at = {}
-local FEED_THROTTLE_S = 2.0
+local _last_feed_at       = {}
+local FEED_THROTTLE_S     = 2.0
 
 local function pet_is_eating()
   local pet = Pet.GetPrimary()
@@ -700,7 +700,7 @@ function Pet.Feed(item_name)
   end
 
   local script = "local target = " .. string.format("%q", item_name) .. "\n"
-              .. [[
+      .. [[
 local NumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
 local ItemLink = (C_Container and C_Container.GetContainerItemLink) or GetContainerItemLink
 local UseItem  = (C_Container and C_Container.UseContainerItem)     or UseContainerItem
@@ -795,7 +795,9 @@ function Pet.DrawFoodPicker(uid, default, label)
   local saved = Pet.SelectedFood(uid, default)
   local in_bags = false
   for _, name in ipairs(_food_list) do
-    if name == saved then in_bags = true; break end
+    if name == saved then
+      in_bags = true; break
+    end
   end
 
   local preview = in_bags and saved or (saved .. "  (none in bags)")
@@ -1007,7 +1009,7 @@ local function ensure_pet_spellbook()
 end
 
 local function decode_in_range(r)
-  if r == 1 or r == true  then return true  end
+  if r == 1 or r == true then return true end
   if r == 0 or r == false then return false end
   return nil
 end
@@ -1237,8 +1239,8 @@ function Pet.OwnerOf(unit_or_entity)
   end
   local unit = unit_or_entity.unit or unit_or_entity
   return unit_or_entity.charmed_by_guid or unit.charmed_by_guid or
-    unit_or_entity.summoned_by_guid or unit.summoned_by_guid or
-    unit_or_entity.created_by_guid or unit.created_by_guid
+      unit_or_entity.summoned_by_guid or unit.summoned_by_guid or
+      unit_or_entity.created_by_guid or unit.created_by_guid
 end
 
 function Pet.IsOwnedByPlayer(unit_or_entity)

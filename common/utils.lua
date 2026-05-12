@@ -79,7 +79,7 @@ function Utils.StartsWith(value, prefix)
 end
 
 function Utils.EndsWith(value, suffix)
-  return type(value) == "string" and (suffix == "" or value:sub(-#suffix) == suffix)
+  return type(value) == "string" and (suffix == "" or value:sub(- #suffix) == suffix)
 end
 
 Aegis.Utils = Utils

@@ -3,7 +3,7 @@
 ---@class Tank : Targeting
 ---@field PriorityList table[] Sorted list of `{ Unit, Priority }` tank candidates.
 ---@field BestTarget Unit|nil Highest priority tank target this tick.
-Tank = Tank or Targeting:New()
+Tank              = Tank or Targeting:New()
 
 Tank.PriorityList = {}
 Tank.BestTarget   = nil
@@ -54,7 +54,7 @@ function Tank:CollectTargets()
       local dx = mx - e.position.x
       local dy = my - e.position.y
       local dz = mz - e.position.z
-      if dx*dx + dy*dy + dz*dz > 1600 then goto skip end
+      if dx * dx + dy * dy + dz * dz > 1600 then goto skip end
     end
 
     self.Targets[#self.Targets + 1] = Unit:New(e)

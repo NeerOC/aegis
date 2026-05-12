@@ -156,13 +156,13 @@ local function unit_has_cc(unit)
   for _, aura in ipairs(unit.Auras or {}) do
     local name = normalize_name(aura and (aura.name or aura.spell_name or aura.Name))
     if name ~= "" and (
-        name:find("polymorph", 1, true)
-        or name:find("shackle", 1, true)
-        or name:find("hibernate", 1, true)
-        or name == "banish"
-        or name == "fear"
-        or name == "seduction"
-        or name:find("freezing trap", 1, true)) then
+          name:find("polymorph", 1, true)
+          or name:find("shackle", 1, true)
+          or name:find("hibernate", 1, true)
+          or name == "banish"
+          or name == "fear"
+          or name == "seduction"
+          or name:find("freezing trap", 1, true)) then
       return true
     end
   end

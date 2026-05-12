@@ -1,24 +1,24 @@
 -- Aegis Core — PvE behavior framework for jmrMoP.
 
-local Plugin = {}
-Plugin.name        = "Aegis Core"
-Plugin.description = "Aegis-style behavior framework (combat, heal, tank)"
-Plugin.author      = "community"
+local Plugin                     = {}
+Plugin.name                      = "Aegis Core"
+Plugin.description               = "Aegis-style behavior framework (combat, heal, tank)"
+Plugin.author                    = "community"
 
-local settings_mod = require("settings")
+local settings_mod               = require("settings")
 
-Aegis = Aegis or {}
-Aegis._entity_cache = {}
-Aegis._last_cast      = ""
-Aegis._last_cast_time = 0
-Aegis._last_cast_tgt  = ""
-Aegis._last_cast_code = 0
-Aegis._last_cast_desc = ""
-Aegis._last_fail      = ""
-Aegis._last_fail_time = 0
-Aegis._last_fail_code = 0
-Aegis._last_fail_desc = ""
-Aegis._tick_throttled = false
+Aegis                            = Aegis or {}
+Aegis._entity_cache              = {}
+Aegis._last_cast                 = ""
+Aegis._last_cast_time            = 0
+Aegis._last_cast_tgt             = ""
+Aegis._last_cast_code            = 0
+Aegis._last_cast_desc            = ""
+Aegis._last_fail                 = ""
+Aegis._last_fail_time            = 0
+Aegis._last_fail_code            = 0
+Aegis._last_fail_desc            = ""
+Aegis._tick_throttled            = false
 Aegis._autorepeat_suppress_until = 0
 
 
@@ -48,27 +48,27 @@ AegisSettings = AegisSettings or {}
 local SETTINGS_KEY = "Aegis"
 
 local CORE_DEFAULTS = {
-  AegisEnabled      = true,
-  AegisAutoTarget   = false,
-  AegisAttackOOC    = false,
-  AegisAttackTarget = true,
-  AegisSpecIdx      = 0,
-  AegisSpecName     = "",
-  AegisSpecManualOverride = false,
-  AegisInterruptMode = 0,
-  AegisInterruptTiming = false,
-  AegisInterruptPercentage = 80,
-  AegisToggleKey    = 0,
+  AegisEnabled               = true,
+  AegisAutoTarget            = false,
+  AegisAttackOOC             = false,
+  AegisAttackTarget          = true,
+  AegisSpecIdx               = 0,
+  AegisSpecName              = "",
+  AegisSpecManualOverride    = false,
+  AegisInterruptMode         = 0,
+  AegisInterruptTiming       = false,
+  AegisInterruptPercentage   = 80,
+  AegisToggleKey             = 0,
 
-  AegisSpellQueueWindowMs = 400,
-  AegisSpellQueueSlackMs  = 75,
+  AegisSpellQueueWindowMs    = 400,
+  AegisSpellQueueSlackMs     = 75,
 
   AegisCastSuccessThrottleMs = 30,
 
-  AegisRacialDamageMode = 0,
-  AegisRacialInterrupts = false,
-  AegisRacialGiftEnabled = true,
-  AegisRacialGiftPct    = 45,
+  AegisRacialDamageMode      = 0,
+  AegisRacialInterrupts      = false,
+  AegisRacialGiftEnabled     = true,
+  AegisRacialGiftPct         = 45,
 }
 
 local function load_settings()
@@ -174,11 +174,11 @@ local function refresh_me()
 
   local cd = Aegis._class_data
   if cd then
-    local key = cd.class_key(Me.ClassId)
-    Me._class_key     = key
-    Me._class_name    = cd.CLASS_MAP[Me.ClassId] or "Unknown"
-    Me.ClassName      = Me._class_name
-    Me._spec_options  = key and cd.SPEC_MAP[key] or {}
+    local key        = cd.class_key(Me.ClassId)
+    Me._class_key    = key
+    Me._class_name   = cd.CLASS_MAP[Me.ClassId] or "Unknown"
+    Me.ClassName     = Me._class_name
+    Me._spec_options = key and cd.SPEC_MAP[key] or {}
   end
 
   if not AegisSettings.AegisSpecManualOverride and Me.SpecName ~= "" then
@@ -347,7 +347,7 @@ function Plugin.onTick()
   if now - _dot_dbg_last > 1 then
     _dot_dbg_last = now
     local total = Spell.Corruption and Spell.Corruption.DotTotal
-              and Spell.Corruption:DotTotal()
+        and Spell.Corruption:DotTotal()
     local d = Aegis._dot_last or {}
     console.log(string.format(
       "[dotdbg] Corruption total=%s | base=%s school=%s dur=%ss sp=%s coef=%.2f penalty=%.2f req=%s plvl=%s",

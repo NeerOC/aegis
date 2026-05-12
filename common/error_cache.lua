@@ -1,21 +1,21 @@
 -- Aegis ErrorCache — reactive PQR-style cast-failure cache.
 
-local M = {}
+local M               = {}
 
-local TTL_LOS    = 2.0
-local TTL_BEHIND = 2.0
-local TTL_FRONT  = 1.0
-local TTL_RANGE  = 1.0
+local TTL_LOS         = 2.0
+local TTL_BEHIND      = 2.0
+local TTL_FRONT       = 1.0
+local TTL_RANGE       = 1.0
 
-local ATTR_WINDOW = 0.30
+local ATTR_WINDOW     = 0.30
 
-M.los_blocked    = {}
-M.behind_blocked = {}
-M.front_blocked  = {}
-M.range_blocked  = {}
+M.los_blocked         = {}
+M.behind_blocked      = {}
+M.front_blocked       = {}
+M.range_blocked       = {}
 
-M._last_attempt_guid = nil
-M._last_attempt_at   = 0
+M._last_attempt_guid  = nil
+M._last_attempt_at    = 0
 
 local frame_installed = false
 
@@ -62,12 +62,14 @@ end
 
 local function classify(msg)
   local m = msg:lower()
-  if m:find("line of sight", 1, true)  then return "los",    TTL_LOS    end
+  if m:find("line of sight", 1, true) then return "los", TTL_LOS end
   if m:find("must be behind", 1, true) then return "behind", TTL_BEHIND end
   if m:find("must face", 1, true)
-     or m:find("not in front", 1, true)
-     or m:find("not facing", 1, true)  then return "front",  TTL_FRONT  end
-  if m:find("out of range", 1, true)   then return "range",  TTL_RANGE  end
+      or m:find("not in front", 1, true)
+      or m:find("not facing", 1, true) then
+    return "front", TTL_FRONT
+  end
+  if m:find("out of range", 1, true) then return "range", TTL_RANGE end
   return nil
 end
 
@@ -140,10 +142,13 @@ local function is_blocked(self, key, target)
   return true
 end
 
-function M:IsLOSBlocked(target)         return is_blocked(self, "los_blocked",    target) end
-function M:IsBehindBlocked(target)      return is_blocked(self, "behind_blocked", target) end
-function M:IsFrontBlocked(target)       return is_blocked(self, "front_blocked",  target) end
-function M:IsOutOfRangeBlocked(target)  return is_blocked(self, "range_blocked",  target) end
+function M:IsLOSBlocked(target) return is_blocked(self, "los_blocked", target) end
+
+function M:IsBehindBlocked(target) return is_blocked(self, "behind_blocked", target) end
+
+function M:IsFrontBlocked(target) return is_blocked(self, "front_blocked", target) end
+
+function M:IsOutOfRangeBlocked(target) return is_blocked(self, "range_blocked", target) end
 
 --- Manual seed (for tests / debugging).
 function M:_seed(category, guid, ttl)
@@ -153,12 +158,16 @@ end
 
 --- Diagnostics for the HUD / settings panel.
 function M:Stats()
-  local count = function(t) local n=0 for _ in pairs(t) do n=n+1 end return n end
+  local count = function(t)
+    local n = 0
+    for _ in pairs(t) do n = n + 1 end
+    return n
+  end
   return {
-    los    = count(self.los_blocked),
-    behind = count(self.behind_blocked),
-    front  = count(self.front_blocked),
-    range  = count(self.range_blocked),
+    los       = count(self.los_blocked),
+    behind    = count(self.behind_blocked),
+    front     = count(self.front_blocked),
+    range     = count(self.range_blocked),
     installed = frame_installed,
   }
 end
