@@ -114,14 +114,68 @@ function SpellWrapper:CooldownRemains()
   return cd.remains or cd.duration or 0
 end
 
---- Cast time in seconds. 0 for instants.
+--- Fetch the WoW Lua-side GetSpellInfo tuple. The immutable fields
+--- (name/rank/icon/minRange/maxRange) are cached on the wrapper; castTime
+--- is returned live each call since it shifts with talents and haste.
+--- Returns nil when the bridge or spell id is unavailable.
+function SpellWrapper:_LiveInfo()
+  if self.Id == 0 then return nil, 0 end
+  if not wow or not wow.call_game_lua then return nil, 0 end
+  local ok, name, rank, icon, castTime, minRange, maxRange =
+      pcall(wow.call_game_lua, "GetSpellInfo", self.Id)
+  if not ok or name == nil then return self._info_cache, 0 end
+  if not self._info_cache then
+    self._info_cache = {
+      name     = name or "",
+      rank     = rank or "",
+      icon     = icon or "",
+      minRange = tonumber(minRange) or 0,
+      maxRange = tonumber(maxRange) or 0,
+    }
+  end
+  return self._info_cache, tonumber(castTime) or 0
+end
+
+--- Cast time in seconds. 0 for instants. Live (talents + haste applied).
 function SpellWrapper:CastTime()
   if self.Id == 0 then return 0 end
-  local ok, info = pcall(game.get_spell_info, self.Id)
-  if not ok or not info then return 0 end
-  local ms = info.cast_time or info.cast_time_ms or 0
+  local _info, ct_ms = self:_LiveInfo()
+  if ct_ms > 0 then return ct_ms / 1000 end
+  if _info then return 0 end
+  -- Bridge unavailable: fall back to the shim DB leaf.
+  local ok, db = pcall(game.get_spell_info, self.Id)
+  if not ok or not db then return 0 end
+  local ms = db.cast_time or db.cast_time_ms or 0
   if ms <= 0 then return 0 end
   return ms > 10 and (ms / 1000) or ms
+end
+
+--- Rank string (e.g. "Rank 5"). Empty when not ranked or bridge missing.
+function SpellWrapper:Rank()
+  local info = self:_LiveInfo()
+  return info and info.rank or ""
+end
+
+--- Icon texture path. Empty when bridge missing.
+function SpellWrapper:Icon()
+  local info = self:_LiveInfo()
+  return info and info.icon or ""
+end
+
+--- Max range in yards. 0 = no declared range (self/melee/buff).
+function SpellWrapper:MaxRange()
+  local info = self:_LiveInfo()
+  if info then return info.maxRange end
+  local ok, db = pcall(game.get_spell_info, self.Id)
+  return ok and db and (db.max_range or 0) or 0
+end
+
+--- Min range in yards. 0 = no minimum.
+function SpellWrapper:MinRange()
+  local info = self:_LiveInfo()
+  if info then return info.minRange end
+  local ok, db = pcall(game.get_spell_info, self.Id)
+  return ok and db and (db.min_range or 0) or 0
 end
 
 local SCHOOL_INDEX = {
@@ -251,54 +305,17 @@ function SpellWrapper:Apply(target, min_landing_pct)
 end
 
 function SpellWrapper:InRange(target)
-  if not target then
+  if not target then return true end
+  if Me and (target == Me or (target.Guid and target.Guid == Me.Guid)) then
     return true
   end
-  if game.is_spell_in_range and target.obj_ptr then
-    local ok, val = pcall(game.is_spell_in_range, self.Id, target.obj_ptr)
-    if ok and val ~= nil then
-      return val == 1
-    end
-  end
-  local ok, info = pcall(game.get_spell_info, self.Id)
-  if not ok or not info then
-    return true
-  end
-  local max_range = info.max_range or 0
+  local max_range = self:MaxRange()
   if max_range < 0.1 then
     return Me and Me:InMeleeRange(target) or false
   end
   local d = Me and Me:GetDistance(target) or -1
-  if d < 0 then
-    return true
-  end
+  if d < 0 then return true end
   return d <= max_range
-end
-
---- True/false from WoW's `IsSpellInRange` (Lua side), nil when the query
---- couldn't be answered. Uses the mouseover bridge to address arbitrary
---- units, so it's accurate when the shim's spell_info max_range is wrong.
----@param target Unit
----@return boolean|nil
-function SpellWrapper:WowInRange(target)
-  if not target or not target.Guid or target.Guid == "" then return nil end
-  if self.Name == "" or not wow or not wow.call_game_lua then return nil end
-
-  local function check(token)
-    local ok, r = pcall(wow.call_game_lua, "IsSpellInRange", self.Name, token)
-    if not ok then return nil end
-    if r == 1 or r == true then return true end
-    if r == 0 or r == false then return false end
-    return nil
-  end
-
-  if Me and target.Guid == Me.Guid then return check("player") end
-  local ok, tgt = pcall(game.target)
-  if ok and tgt and tgt.guid == target.Guid then return check("target") end
-  if wow.with_mouseover then
-    return wow.with_mouseover(target.Guid, check)
-  end
-  return nil
 end
 
 function SpellWrapper:IsCurrentSpell()

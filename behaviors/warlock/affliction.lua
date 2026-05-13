@@ -76,10 +76,7 @@ end
 
 -- Off-target crowd control: pick a live enemy that isn't BestTarget for
 -- Fear. Fear only sticks on one mob at a time, so if any off-target
--- already has Fear from us we leave the rest alone. Range is gated by
--- WoW's IsSpellInRange (via Spell.Fear:WowInRange) — the server's
--- spell_info DB reports 0 for Fear's max_range so the generic InRange
--- check passes too easily.
+-- already has Fear from us we leave the rest alone.
 local function PickFearTarget(best)
     if not Me or not Combat or not Combat.Targets or #Combat.Targets < 2 then return nil end
     local best_guid = best and best.Guid or ""
@@ -87,7 +84,7 @@ local function PickFearTarget(best)
     for _, u in ipairs(Combat.Targets) do
         if u and not u.IsDead and (u.Health or 0) > 0 and u.Guid ~= best_guid then
             if u:HasDebuffByMe("Fear") then return nil end
-            if not candidate and Spell.Fear:WowInRange(u) == true then
+            if not candidate and Spell.Fear:InRange(u) then
                 candidate = u
             end
         end
@@ -123,6 +120,15 @@ local function DoCombat()
             if pet and pet:InMeleeRange(pet_target) then
                 Pet.CastAction("Torment")
             end
+        end
+    elseif not target and AegisSettings.AffliPetAutoTarget ~= false
+        and Pet.HasPet() and not Pet:IsDead() then
+        -- No combat target but pet is still chasing something — recall it.
+        -- Once pet starts following, its target goes nil and this is a no-op
+        -- on subsequent ticks, so no spam.
+        local pet_target = Pet:GetTarget()
+        if pet_target and not pet_target.IsDead then
+            Pet.Follow()
         end
     end
 
