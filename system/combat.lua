@@ -103,6 +103,10 @@ function Combat:CollectTargets()
     mx, my, mz = Me.Position.x, Me.Position.y, Me.Position.z
   end
 
+  -- Collect every nearby attackable Unit/Player. ExclusionFilter applies
+  -- the canonical "engaged with team" gate (isUnitInCombatWithPartyOrMe =
+  -- target-of-target check OR UDTS engagement), which already catches the
+  -- mob-is-targeting-us case the old in_combat gate missed.
   for _, e in ipairs(entities) do
     local cls = e.class
     if cls ~= "Unit" and cls ~= "Player" then goto skip end
@@ -111,13 +115,6 @@ function Combat:CollectTargets()
     if not eu then goto skip end
     if eu.is_dead then goto skip end
     if eu.health and eu.health <= 0 then goto skip end
-    if not eu.in_combat then
-      local is_current_target = Me.Target and Me.Target.Guid == eu.guid
-      if not (AegisSettings.AegisAttackOOC and is_current_target) then
-        goto skip
-      end
-    end
-    if not game.unit_can_attack(e.obj_ptr) then goto skip end
 
     if mx and e.position then
       local dx = mx - e.position.x
@@ -125,6 +122,8 @@ function Combat:CollectTargets()
       local dz = mz - e.position.z
       if dx * dx + dy * dy + dz * dz > 1600 then goto skip end
     end
+
+    if not game.unit_can_attack(e.obj_ptr) then goto skip end
 
     self.Targets[#self.Targets + 1] = Unit:New(e)
 
@@ -142,14 +141,21 @@ function Combat:ExclusionFilter()
 
     if not u:IsAttackable() then goto skip_ex end
     if u:DeadOrGhost() or u.Health <= 1 then goto skip_ex end
-    if Me:GetDistance(u) >= 40 then goto skip_ex end
+
+    -- Mobs we've CC'd ourselves stay locked-in: Fear breaks the mob's
+    -- target and may push it past 40 yards, but it's still our engagement
+    -- to manage when the CC drops. The debuff is bounded (~15s) so this
+    -- can't leak — once Fear falls off, the normal filters take over.
+    local locked_in = u:HasDebuffByMe("Fear")
+
+    if not locked_in and Me:GetDistance(u) >= 40 then goto skip_ex end
 
     if u.Guid == my_tgt_guid and AegisSettings.AegisAttackOOC then
       keep[#keep + 1] = u
       goto skip_ex
     end
 
-    if not u:isUnitInCombatWithPartyOrMe() then
+    if not locked_in and not u:isUnitInCombatWithPartyOrMe() then
       goto skip_ex
     end
 

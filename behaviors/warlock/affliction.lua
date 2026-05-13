@@ -35,6 +35,21 @@ local options = {
             max = 32,
             default = 5
         },
+        { type = "text", text = "Life Tap" },
+        {
+            type = "checkbox",
+            text = "Life Tap at full HP",
+            uid = "AffliLifeTap",
+            default = true
+        },
+        {
+            type = "slider",
+            text = "Life Tap when mana <",
+            uid = "AffliLifeTapManaPct",
+            min = 0,
+            max = 100,
+            default = 95
+        },
     },
 }
 
@@ -74,9 +89,13 @@ local function SameUnit(a, b)
     return a.Guid and b.Guid and a.Guid == b.Guid or false
 end
 
--- Off-target crowd control: pick a live enemy that isn't BestTarget for
--- Fear. Fear only sticks on one mob at a time, so if any off-target
--- already has Fear from us we leave the rest alone.
+-- Off-target crowd control: pick a live enemy that isn't BestTarget,
+-- isn't already feared by us, is in range, AND we're currently tanking
+-- (UDTS top threat). The IsTanking gate keeps us from peeling mobs the
+-- voidwalker or another teammate is already holding — Fear there would
+-- just transfer threat back to us when the CC drops. Fear only sticks on
+-- one mob at a time, so if any off-target already has Fear from us we
+-- leave the rest alone.
 local function PickFearTarget(best)
     if not Me or not Combat or not Combat.Targets or #Combat.Targets < 2 then return nil end
     local best_guid = best and best.Guid or ""
@@ -84,7 +103,7 @@ local function PickFearTarget(best)
     for _, u in ipairs(Combat.Targets) do
         if u and not u.IsDead and (u.Health or 0) > 0 and u.Guid ~= best_guid then
             if u:HasDebuffByMe("Fear") then return nil end
-            if not candidate and Spell.Fear:InRange(u) then
+            if not candidate and u:IsTanking() and Spell.Fear:InRange(u) then
                 candidate = u
             end
         end
@@ -159,10 +178,19 @@ local function DoCombat()
         if not spell:InRange(dot_target) then return false end
         want_cast = true
         if wanding then return false end
-        return spell:Apply(dot_target, min_pct)
+        -- DoTs in TBC (Corruption, CoA, Siphon Life, etc.) don't require
+        -- facing the target, so bypass the facing gate.
+        return spell:CastEx(dot_target, { skipFacing = true })
     end
 
     if not Me:HasAura("Demon Skin") and Cast(Spell.DemonSkin, Me) then return end
+
+    if AegisSettings.AffliLifeTap ~= false
+        and Me.HealthPct >= 100
+        and Me.PowerPct < (AegisSettings.AffliLifeTapManaPct or 95)
+        and Cast(Spell.LifeTap, Me) then
+        return
+    end
 
     if target then
         if AegisSettings.AffliFearAdds ~= false then
