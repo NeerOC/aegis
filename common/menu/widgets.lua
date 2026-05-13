@@ -14,12 +14,12 @@ local M = {}
 ---@param label string
 ---@param color number[]  RGBA 0-1
 function M.status_pill(label, color)
-  imgui.push_style_color(21, 0.0, 0.0, 0.0, 0.0)   -- Button = transparent
-  imgui.push_style_color(22, 0.0, 0.0, 0.0, 0.0)   -- ButtonHovered
-  imgui.push_style_color(23, 0.0, 0.0, 0.0, 0.0)   -- ButtonActive
-  imgui.push_style_color(0,  color[1], color[2], color[3], color[4]) -- Text
-  imgui.push_style_color(5,  color[1], color[2], color[3], 0.55)     -- Border
-  imgui.push_style_var(13, 1)                       -- FrameBorderSize = 1
+  imgui.push_style_color(21, 0.0, 0.0, 0.0, 0.0)                    -- Button = transparent
+  imgui.push_style_color(22, 0.0, 0.0, 0.0, 0.0)                    -- ButtonHovered
+  imgui.push_style_color(23, 0.0, 0.0, 0.0, 0.0)                    -- ButtonActive
+  imgui.push_style_color(0, color[1], color[2], color[3], color[4]) -- Text
+  imgui.push_style_color(5, color[1], color[2], color[3], 0.55)     -- Border
+  imgui.push_style_var(13, 1)                                       -- FrameBorderSize = 1
   imgui.small_button(" " .. label .. " ")
   imgui.pop_style_var(1)
   imgui.pop_style_color(5)
@@ -41,7 +41,7 @@ function M.segmented(id, options, current)
       imgui.push_style_color(21, C.accent[1], C.accent[2], C.accent[3], C.accent[4])
       imgui.push_style_color(22, C.accent_hov[1], C.accent_hov[2], C.accent_hov[3], 1.0)
       imgui.push_style_color(23, C.accent[1], C.accent[2], C.accent[3], 1.0)
-      imgui.push_style_color(0,  0.05, 0.07, 0.10, 1.0)
+      imgui.push_style_color(0, 0.05, 0.07, 0.10, 1.0)
     end
     if imgui.button(opt .. "##" .. id .. idx) then
       sel = idx
@@ -67,7 +67,7 @@ function M.hp_bar(fraction, width, overlay)
     r, g, b = C.error_col[1], C.error_col[2], C.error_col[3]
   end
   imgui.push_style_color(40, r, g, b, 1.0) -- PlotHistogram (used by progress_bar fill)
-  imgui.push_style_color(7,  C.bg_field[1], C.bg_field[2], C.bg_field[3], 1.0)
+  imgui.push_style_color(7, C.bg_field[1], C.bg_field[2], C.bg_field[3], 1.0)
   -- progress_bar(fraction, overlay) — width passed via... actually progress_bar
   -- uses item-width; clamp by push_item_width if needed. Plain call here.
   imgui.progress_bar(fraction, overlay or string.format("%.0f%%", fraction * 100))
@@ -87,28 +87,28 @@ end
 --   button   = imgui.button / small_button rows (incl. on its own line)
 --   table    = rows in an imgui.begin_table (header counts as 1)
 --   sep      = imgui.separator + spacing within the card body
-local CARD_HEADER     = 44  -- top dummy(4) + title text + separator + spacing
-local CARD_TAIL       = 18  -- breathing room at the bottom
-local LINE_TEXT       = 24
-local LINE_CHECKBOX   = 28
-local LINE_SLIDER     = 30
-local LINE_RADIO      = 26
-local LINE_BUTTON     = 30
-local LINE_TABLE_ROW  = 24
-local LINE_SEPARATOR  = 12
+local CARD_HEADER    = 44 -- top dummy(4) + title text + separator + spacing
+local CARD_TAIL      = 18 -- breathing room at the bottom
+local LINE_TEXT      = 24
+local LINE_CHECKBOX  = 28
+local LINE_SLIDER    = 30
+local LINE_RADIO     = 26
+local LINE_BUTTON    = 30
+local LINE_TABLE_ROW = 24
+local LINE_SEPARATOR = 12
 
 ---@param parts table  Content manifest (see comment above).
 ---@return number height_px
 function M.card_height(parts)
   parts = parts or {}
   local h = CARD_HEADER + CARD_TAIL
-  h = h + (parts.text     or 0) * LINE_TEXT
+  h = h + (parts.text or 0) * LINE_TEXT
   h = h + (parts.checkbox or 0) * LINE_CHECKBOX
-  h = h + (parts.slider   or 0) * LINE_SLIDER
-  h = h + (parts.radio    or 0) * LINE_RADIO
-  h = h + (parts.button   or 0) * LINE_BUTTON
-  h = h + (parts.table    or 0) * LINE_TABLE_ROW
-  h = h + (parts.sep      or 0) * LINE_SEPARATOR
+  h = h + (parts.slider or 0) * LINE_SLIDER
+  h = h + (parts.radio or 0) * LINE_RADIO
+  h = h + (parts.button or 0) * LINE_BUTTON
+  h = h + (parts.table or 0) * LINE_TABLE_ROW
+  h = h + (parts.sep or 0) * LINE_SEPARATOR
   return h
 end
 
@@ -130,27 +130,14 @@ function M.tab_height(parts_list)
   return h
 end
 
--- ── Card: titled child panel with a body callback ────────────────
--- Width = 0 means "fill remaining horizontal space" (matches ImGui's
--- begin_child behavior). Pass height from M.card_height() — see above.
--- NoScrollbar is set so content over-tall for the box gets clipped rather
--- than producing a scroll handle.
+local CARD_INDENT  = 6
+local CARD_TOP_PAD = 4
+
 ---@param id string Unique child-window id.
 ---@param title string Visible title text.
 ---@param width number Pixels (0 = fill remaining width).
 ---@param height number Pixels. Required (>0). Use a value that comfortably fits the body.
 ---@param body fun() Render callback for the body.
--- Extra padding applied inside each card so title + body don't touch the
--- card border. WindowPadding via push_style_var doesn't propagate to
--- begin_child in this binding, so we apply it manually with indent() (left
--- padding) and dummy() (top padding). The host's WindowPadding still
--- provides the right + bottom padding inside the child.
-local CARD_INDENT  = 6
-local CARD_TOP_PAD = 4
-
--- Bump card_height() above to account for the extra top dummy; ensures
--- the explicit height we pass to begin_child still fits the content.
-
 function M.card(id, title, width, height, body)
   imgui.push_style_color(3, C.bg_panel_alt[1], C.bg_panel_alt[2], C.bg_panel_alt[3], C.bg_panel_alt[4])
   imgui.begin_child(id, width or 0, height or 80, true, 8) -- 8 = NoScrollbar

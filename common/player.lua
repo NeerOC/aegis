@@ -37,6 +37,15 @@ function Player:StopCasting()
   game.stop_casting()
 end
 
+-- Override: ignore wand / auto-shot auto-repeat so the rotation isn't
+-- gated by their pseudo-cast bar.
+function Player:IsCastingOrChanneling()
+  if self:IsAutoWanding() or self:IsAutoRanging() then
+    return false
+  end
+  return Unit.IsCastingOrChanneling(self)
+end
+
 ---@param target Unit - The unit to target
 ---@return boolean - true if the target was set successfully
 function Player:SetTarget(target)
@@ -75,14 +84,12 @@ end
 ---@param target Unit - The target to range
 ---@return boolean - true if the range was started, false otherwise
 function Player:StartRanging(target)
-  if os.clock() < (Aegis._autorepeat_suppress_until or 0) then return false end
   return Spell.AutoShot:CastEx(target)
 end
 
 ---@param target Unit - The target to wand
 ---@return boolean - true if the wanding was started, false otherwise
 function Player:StartWanding(target)
-  if os.clock() < (Aegis._autorepeat_suppress_until or 0) then return false end
   return not Me:IsMoving() and Spell.Shoot:CastEx(target)
 end
 

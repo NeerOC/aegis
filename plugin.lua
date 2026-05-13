@@ -19,7 +19,6 @@ Aegis._last_fail_time            = 0
 Aegis._last_fail_code            = 0
 Aegis._last_fail_desc            = ""
 Aegis._tick_throttled            = false
-Aegis._autorepeat_suppress_until = 0
 Aegis._current_action            = "IDLE"
 Aegis._tick_load_ms              = 0
 Aegis._interrupt_log             = {}

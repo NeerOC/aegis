@@ -2,7 +2,7 @@
 local FAIL_BACKOFF = 0.0
 local CAST_THROTTLE = 0.0
 
-Aegis._cast_throttle_by_id = Aegis._cast_throttle_by_id or {}
+Aegis._cast_throttle_until = Aegis._cast_throttle_until or 0
 
 local function cast_success_throttle()
   local ms = AegisSettings and AegisSettings.AegisCastSuccessThrottleMs
@@ -10,25 +10,6 @@ local function cast_success_throttle()
 end
 
 local CAST_OPTS_G1 = { ground = 1 }
-
-local AUTO_REPEAT_IDS = { 5019, 75 }
-
-local AUTOREPEAT_SUPPRESS_S = 0.5
-
-local function stop_conflicting_autorepeat(self_id)
-  if not game.IsAutoRepeatSpell then return false end
-  for _, id in ipairs(AUTO_REPEAT_IDS) do
-    if id ~= self_id then
-      local ok, active = pcall(game.IsAutoRepeatSpell, id)
-      if ok and active then
-        if game.stop_casting then pcall(game.stop_casting) end
-        Aegis._autorepeat_suppress_until = os.clock() + AUTOREPEAT_SUPPRESS_S
-        return true
-      end
-    end
-  end
-  return false
-end
 
 local RESULT_SUCCESS = 0
 local RESULT_THROTTLED = 9
@@ -401,8 +382,8 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     return false
   end
 
-  local id_throttle = Aegis._cast_throttle_by_id[self.Id] or 0
-  if now < id_throttle then
+  local throttle_until = Aegis._cast_throttle_until or 0
+  if now < throttle_until then
     if debugging then
       spell_debug_log({
         time = now,
@@ -411,8 +392,8 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
         target = tgt_name,
         target_hp = tgt_hp,
         result = "SKIP",
-        reason = "double_cast_id",
-        detail = string.format("until=%.2f", id_throttle)
+        reason = "global_cast_throttle",
+        detail = string.format("until=%.2f", throttle_until)
       })
     end
     return false
@@ -522,10 +503,6 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     end
   end
 
-  if stop_conflicting_autorepeat(self.Id) then
-    return false
-  end
-
   local code, desc = self:Cast(target)
 
   if debugging then
@@ -553,10 +530,6 @@ function SpellWrapper:CastEx(target, opts, skipusable2, skipfacing2, skiplos2)
     Aegis._current_action = "CAST: " .. self.Name .. " -> " .. (tgt_name or "self")
     self._fail_until = 0
     self._cast_until = now + CAST_THROTTLE
-    local ct = self:CastTime()
-    if ct > 0 then
-      Aegis._cast_throttle_by_id[self.Id] = now + ct + cast_success_throttle()
-    end
     return true
   elseif code == RESULT_THROTTLED then
     Aegis._tick_throttled = true
@@ -970,14 +943,12 @@ function Spell:ProcessCleuEvents(events)
   for _, ev in ipairs(events) do
     if ev.subevent == "SPELL_CAST_SUCCESS" and ev.source_guid == me_guid then
       local id = ev.spell_id or 0
-      if id > 0 then
-        local ok, info = pcall(game.get_spell_info, id)
-        local cast_ms = (ok and info and (info.cast_time or info.cast_time_ms)) or 0
-        if cast_ms > 0 then
-          local new_until = now + cast_success_throttle()
-          if new_until > (Aegis._cast_throttle_by_id[id] or 0) then
-            Aegis._cast_throttle_by_id[id] = new_until
-          end
+      -- Skip auto-repeat shots (5019 Shoot / 75 Auto Shot) so wanding/auto-
+      -- shooting doesn't keep pushing the global cast throttle forward.
+      if id ~= 5019 and id ~= 75 then
+        local new_until = now + cast_success_throttle()
+        if new_until > (Aegis._cast_throttle_until or 0) then
+          Aegis._cast_throttle_until = new_until
         end
       end
     end

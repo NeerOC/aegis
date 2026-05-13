@@ -203,7 +203,7 @@ function Unit:UnitCall(name, ...)
   if not wow or not wow.call_game_lua then return nil end
   local n = select("#", ...)
   local args = { ... }
-  local unpack_ = table.unpack
+  local unpack_ = table.unpack or unpack
   return self:WithToken(function(tok)
     return wow.call_game_lua(name, tok, unpack_(args, 1, n))
   end)

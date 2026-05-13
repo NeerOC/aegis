@@ -318,7 +318,12 @@ local function overlay_unit_fields(unit, info)
   end
 
   unit.UnitToken = info.token
-  unit.Guid = info.guid or unit.Guid or ""
+  -- Prefer the hex Guid set by Unit:New(entity). Only fall back to info.guid
+  -- (WoW Lua "Creature-0-..." format) when no hex was available, so we never
+  -- mix formats with the rest of the codebase.
+  if not unit.Guid or unit.Guid == "" then
+    unit.Guid = info.guid or ""
+  end
   unit.Name = info.name or unit.Name or ""
   unit.Health = info.health or unit.Health or 0
   unit.MaxHealth = info.max_health or unit.MaxHealth or 1
