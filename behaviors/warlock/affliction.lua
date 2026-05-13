@@ -2,25 +2,62 @@ local options = {
     Name = "Warlock (Affliction)",
     Widgets = {
         { type = "text", text = "Pet & crowd control" },
-        { type = "checkbox", text = "Auto pet target (peel / lowest HP)",
-          uid = "AffliPetAutoTarget", default = true },
-        { type = "checkbox", text = "Voidwalker Torment on threat target",
-          uid = "AffliPetTorment", default = true },
-        { type = "checkbox", text = "Fear off-target adds",
-          uid = "AffliFearAdds", default = true },
+        {
+            type = "checkbox",
+            text = "Auto pet target (peel / lowest HP)",
+            uid = "AffliPetAutoTarget",
+            default = true
+        },
+        {
+            type = "checkbox",
+            text = "Voidwalker Torment on threat target",
+            uid = "AffliPetTorment",
+            default = true
+        },
+        {
+            type = "checkbox",
+            text = "Fear off-target adds",
+            uid = "AffliFearAdds",
+            default = true
+        },
+        { type = "text", text = "Drain Soul" },
+        {
+            type = "checkbox",
+            text = "Drain Soul on <15% HP target",
+            uid = "AffliDrainSoul",
+            default = true
+        },
+        {
+            type = "slider",
+            text = "Top up when shards <",
+            uid = "AffliDrainSoulMaxShards",
+            min = 0,
+            max = 32,
+            default = 5
+        },
     },
 }
 
--- Voidwalker priority: an enemy targeting Me first (tank/peel), else the
--- lowest-HP enemy in combat so the pet helps finish kills. Second return
--- is true when the chosen target is actively attacking Me.
+-- Item id 6265 = Soul Shard. Cached briefly so we don't pay the WoW Lua
+-- bridge cost every tick — shard count only changes on kill or spell cast.
+local SOUL_SHARD_ITEM_ID = 6265
+local _shard_cache = { count = 0, at = 0 }
+local function SoulShardCount()
+    local now = os.clock()
+    if now - _shard_cache.at < 0.5 then return _shard_cache.count end
+    _shard_cache.at = now
+    if not wow or not wow.eval_lua then return _shard_cache.count end
+    local ok, v = pcall(wow.eval_lua, "GetItemCount(" .. SOUL_SHARD_ITEM_ID .. ")")
+    _shard_cache.count = (ok and tonumber(v)) or 0
+    return _shard_cache.count
+end
+
 local function PickPetTarget(fallback)
     if not Me or not Combat or not Combat.Targets then return fallback, false end
     local lowest, lowest_hp = nil, nil
     for _, u in ipairs(Combat.Targets) do
         if u and not u.IsDead and (u.Health or 0) > 0 then
-            local t = u:GetTarget()
-            if t and t.Guid == Me.Guid then
+            if u:IsTanking() then
                 return u, true
             end
             if not lowest_hp or u.Health < lowest_hp then
@@ -31,9 +68,6 @@ local function PickPetTarget(fallback)
     return lowest or fallback, false
 end
 
--- True when both wrappers reference the same in-game entity. Compares
--- obj_ptr first (stable across Guid formats); only falls back to Guid
--- when one side has no obj_ptr (e.g., a mob that just left the snapshot).
 local function SameUnit(a, b)
     if not a or not b then return false end
     if a.obj_ptr and b.obj_ptr then return a.obj_ptr == b.obj_ptr end
@@ -42,15 +76,20 @@ end
 
 -- Off-target crowd control: pick a live enemy that isn't BestTarget for
 -- Fear. Fear only sticks on one mob at a time, so if any off-target
--- already has Fear from us we leave the rest alone.
+-- already has Fear from us we leave the rest alone. Range is gated by
+-- WoW's IsSpellInRange (via Spell.Fear:WowInRange) — the server's
+-- spell_info DB reports 0 for Fear's max_range so the generic InRange
+-- check passes too easily.
 local function PickFearTarget(best)
-    if not Combat or not Combat.Targets or #Combat.Targets < 2 then return nil end
+    if not Me or not Combat or not Combat.Targets or #Combat.Targets < 2 then return nil end
     local best_guid = best and best.Guid or ""
     local candidate = nil
     for _, u in ipairs(Combat.Targets) do
         if u and not u.IsDead and (u.Health or 0) > 0 and u.Guid ~= best_guid then
             if u:HasDebuffByMe("Fear") then return nil end
-            if not candidate then candidate = u end
+            if not candidate and Spell.Fear:WowInRange(u) == true then
+                candidate = u
+            end
         end
     end
     return candidate
@@ -92,17 +131,14 @@ local function DoCombat()
     local wanding = Me:IsAutoWanding()
     local want_cast = false
 
-    local function Cast(spell, ...)
+    local function Cast(spell, cast_target, ...)
+        if cast_target and not spell:InRange(cast_target) then return false end
         want_cast = true
         if wanding then return false end
-        return spell:CastEx(...)
+        return spell:CastEx(cast_target, ...)
     end
 
     local function ApplyDot(spell, dot_target, min_pct)
-        -- Mirror Spell:Apply's gates so want_cast only fires when Apply
-        -- would actually try to cast. Otherwise a below-threshold DoT
-        -- (e.g. mob HP too low for the landing % requirement) would mark
-        -- want_cast and leave us neither casting nor wanding.
         if not dot_target or dot_target.IsDead then return false end
         if dot_target:HasDebuffByMe(spell.Name) then return false end
         local hp = dot_target.Health or 0
@@ -114,6 +150,7 @@ local function DoCombat()
                 if landing_pct < min_pct then return false end
             end
         end
+        if not spell:InRange(dot_target) then return false end
         want_cast = true
         if wanding then return false end
         return spell:Apply(dot_target, min_pct)
@@ -129,7 +166,16 @@ local function DoCombat()
 
         for _, enemy in pairs(Combat.Targets) do
             if not enemy:HasDebuffByMe("Fear")
-                and ApplyDot(Spell.Corruption, enemy, 70) then return end
+                and ApplyDot(Spell.Corruption, enemy, 70) then
+                return
+            end
+        end
+
+        if AegisSettings.AffliDrainSoul ~= false
+            and target.HealthPct < 15
+            and SoulShardCount() < (AegisSettings.AffliDrainSoulMaxShards or 5)
+            and Cast(Spell.DrainSoul, target) then
+            return
         end
     end
 

@@ -275,6 +275,32 @@ function SpellWrapper:InRange(target)
   return d <= max_range
 end
 
+--- True/false from WoW's `IsSpellInRange` (Lua side), nil when the query
+--- couldn't be answered. Uses the mouseover bridge to address arbitrary
+--- units, so it's accurate when the shim's spell_info max_range is wrong.
+---@param target Unit
+---@return boolean|nil
+function SpellWrapper:WowInRange(target)
+  if not target or not target.Guid or target.Guid == "" then return nil end
+  if self.Name == "" or not wow or not wow.call_game_lua then return nil end
+
+  local function check(token)
+    local ok, r = pcall(wow.call_game_lua, "IsSpellInRange", self.Name, token)
+    if not ok then return nil end
+    if r == 1 or r == true then return true end
+    if r == 0 or r == false then return false end
+    return nil
+  end
+
+  if Me and target.Guid == Me.Guid then return check("player") end
+  local ok, tgt = pcall(game.target)
+  if ok and tgt and tgt.guid == target.Guid then return check("target") end
+  if wow.with_mouseover then
+    return wow.with_mouseover(target.Guid, check)
+  end
+  return nil
+end
+
 function SpellWrapper:IsCurrentSpell()
   if self.Id == 0 then
     return false
@@ -905,10 +931,14 @@ function Spell:UpdateCache()
     return
   end
 
+  -- Keep the highest-id entry per name. WoW spellbook usually lists ranks
+  -- low → high, and higher-rank spells have higher ids in TBC, so taking
+  -- the max id picks the top rank we actually know.
   for _, s in ipairs(spells) do
-    if type(s) == "table" and s.name then
+    if type(s) == "table" and s.name and s.id then
       local key = fmtSpellKey(s.name)
-      if not SpellCache[key] then
+      local existing = SpellCache[key]
+      if not existing or s.id > (existing.Id or 0) then
         SpellCache[key] = SpellWrapper:new(s.id, s.name)
       end
     end
@@ -917,9 +947,10 @@ function Spell:UpdateCache()
   local pok, pet_spells = pcall(game.pet_spells, true)
   if pok and pet_spells then
     for _, s in ipairs(pet_spells) do
-      if type(s) == "table" and s.name then
+      if type(s) == "table" and s.name and s.id then
         local key = fmtSpellKey(s.name)
-        if not SpellCache[key] then
+        local existing = SpellCache[key]
+        if not existing or s.id > (existing.Id or 0) then
           SpellCache[key] = SpellWrapper:new(s.id, s.name)
         end
       end

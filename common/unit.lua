@@ -397,6 +397,65 @@ function Unit:IsTank()
   return ok and result or false
 end
 
+--- True when the player currently has top threat on this unit (i.e. is
+--- being tanked by it). Wraps UnitDetailedThreatSituation via the shim.
+function Unit:IsTanking()
+  if not self.obj_ptr then return false end
+  local ok, is_tanking = pcall(game.unit_threat, self.obj_ptr)
+  return ok and is_tanking or false
+end
+
+--- True when *any* member of our "team" (player, pet, party1-4, raid1-40)
+--- is on this unit's threat table — i.e. UnitDetailedThreatSituation
+--- returns a non-nil status for at least one owner. This is distinct
+--- from IsTanking (top-threat). Batches all UDTS calls into one
+--- wow.eval_lua bridge crossing and caches the boolean per-mob for 250ms
+--- so the combat-target filter can call this every tick cheaply.
+local ENGAGED_BY_TEAM_TTL = 0.25
+local _engaged_by_team_cache = {}
+function Unit:IsEngagedByPartyOrMe()
+  if not self.Guid or self.Guid == "" then return false end
+  if Me and self.Guid == Me.Guid then return false end
+  if not wow or not wow.eval_lua then return false end
+
+  local now = os.clock()
+  local hit = _engaged_by_team_cache[self.Guid]
+  if hit and (now - hit.at) < ENGAGED_BY_TEAM_TTL then return hit.v end
+
+  local owners = { "player" }
+  if Pet and Pet.HasPet and Pet.HasPet() then owners[#owners + 1] = "pet" end
+  if Me and Me.InGroup and Me:InGroup() then
+    for i = 1, 4 do owners[#owners + 1] = "party" .. i end
+    for i = 1, 40 do owners[#owners + 1] = "raid" .. i end
+  end
+
+  -- UDTS returns nil for every value when `owner` has no threat history
+  -- on the mob; any non-nil return (status is convenient) means the mob
+  -- IS on `owner`'s threat table. Short-circuit on the first hit.
+  local function probe(token)
+    local parts = {}
+    for _, owner in ipairs(owners) do
+      parts[#parts + 1] = string.format(
+        "local _o,_,_s=pcall(UnitDetailedThreatSituation,'%s','%s');if _o and _s~=nil then return 1 end",
+        owner, token)
+    end
+    parts[#parts + 1] = "return 0"
+    local ok, v = pcall(wow.eval_lua, table.concat(parts, " "))
+    return ok and tonumber(v) == 1
+  end
+
+  local result = false
+  local ok, tgt = pcall(game.target)
+  if ok and tgt and tgt.guid == self.Guid then
+    result = probe("target")
+  elseif wow.with_mouseover then
+    result = wow.with_mouseover(self.Guid, probe) == true
+  end
+
+  _engaged_by_team_cache[self.Guid] = { v = result, at = now }
+  return result
+end
+
 function Unit:IsHealer()
   local ok, result = pcall(game.unit_is_healer, self.obj_ptr)
   return ok and result or false
@@ -518,31 +577,38 @@ function Unit:validTarget()
   return true
 end
 
--- True if this enemy unit's target is the local player, pet, or a party/raid member.
+-- True if this enemy unit's target is the local player, pet, or a party/raid
+-- member, OR if anyone on the team is currently tanking it (UDTS). The
+-- cheap target's-target check runs first; the threat check is the fallback
+-- so we don't miss mobs mid-target-swap.
 function Unit:isUnitInCombatWithPartyOrMe()
   local target = self:GetTarget()
-  if not target then return false end
+  if target then
+    local t_lo = target.guid_lo or 0
+    if t_lo ~= 0 then
+      if Me and Me.guid_lo and t_lo == Me.guid_lo then return true end
 
-  local t_lo = target.guid_lo or 0
-  if t_lo == 0 then return false end
+      if Pet and Pet.GetPrimary then
+        local pet = Pet.GetPrimary()
+        if pet and pet.guid_lo and pet.guid_lo ~= 0 and t_lo == pet.guid_lo then
+          return true
+        end
+      end
 
-  if Me and Me.guid_lo and t_lo == Me.guid_lo then return true end
-
-  if Pet and Pet.GetPrimary then
-    local pet = Pet.GetPrimary()
-    if pet and pet.guid_lo and pet.guid_lo ~= 0 and t_lo == pet.guid_lo then
-      return true
+      if Me and Me.InGroup and Me:InGroup() then
+        local ok, roster = pcall(game.group_members)
+        if ok and roster then
+          for _, m in ipairs(roster) do
+            if m.guid_lo == t_lo then return true end
+          end
+        end
+      end
     end
   end
 
-  if not Me or not Me.InGroup or not Me:InGroup() then return false end
-
-  local ok, roster = pcall(game.group_members)
-  if not ok or not roster then return false end
-  for _, m in ipairs(roster) do
-    if m.guid_lo == t_lo then return true end
-  end
-  return false
+  -- Fallback: UDTS for player, pet, party1-4, raid1-40 (batched + cached).
+  -- Status non-nil = on someone's threat table, even if not tanking.
+  return self:IsEngagedByPartyOrMe()
 end
 
 -- True if another group has tapped this mob and we get no credit/loot.

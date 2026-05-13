@@ -1209,13 +1209,45 @@ function game.unit_is_healer(obj_ptr) return role_for(obj_ptr) == "HEALER" end
 
 function game.unit_is_dps(obj_ptr) return role_for(obj_ptr) == "DAMAGER" end
 
+-- Returns (is_tanking, status, scaled_pct, raw_pct, threat_value).
+-- Uses WoW Lua's UnitDetailedThreatSituation directly via the bridge —
+-- no native C-side wow.unit_threat_situation is wired on this server.
+-- Mouseover-swaps to address arbitrary mobs that aren't the current
+-- target, same pattern as Pet.IsSpellInRange / SpellWrapper:WowInRange.
 function game.unit_threat(obj_ptr)
-  -- Aegis wants 5 returns. Adapter: (is_tanking, status, scaled, raw, value).
-  if wow.unit_threat_situation then
-    local status, is_attacked, pct, raw = wow.unit_threat_situation(obj_ptr)
-    local is_tanking = (status or 0) >= 2
-    return is_tanking, status or 0, pct or 0, raw or 0, 0
+  if not obj_ptr or obj_ptr == 0 then return false, 0, 0, 0, 0 end
+  if not wow or not wow.call_game_lua then return false, 0, 0, 0, 0 end
+
+  local e = find_by_wrapper(obj_ptr)
+  if not e or not e.guid or e.guid == "" then return false, 0, 0, 0, 0 end
+
+  local function query(token)
+    local ok, isTanking, status, scaled, raw, threat =
+        pcall(wow.call_game_lua, "UnitDetailedThreatSituation", "player", token)
+    if not ok then return false, 0, 0, 0, 0 end
+    return isTanking == true or isTanking == 1,
+           tonumber(status) or 0,
+           tonumber(scaled) or 0,
+           tonumber(raw) or 0,
+           tonumber(threat) or 0
   end
+
+  local tgt_hex = wow.target_guid and wow.target_guid()
+  if tgt_hex == e.guid then
+    return query("target")
+  end
+
+  if wow.with_mouseover then
+    -- Pack the 5 returns through the mouseover wrapper so they survive.
+    local r = wow.with_mouseover(e.guid, function(tok)
+      local a, b, c, d, f = query(tok)
+      return { a, b, c, d, f }
+    end)
+    if type(r) == "table" then
+      return r[1] == true, r[2] or 0, r[3] or 0, r[4] or 0, r[5] or 0
+    end
+  end
+
   return false, 0, 0, 0, 0
 end
 
